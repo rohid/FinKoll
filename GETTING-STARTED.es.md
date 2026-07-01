@@ -2,236 +2,81 @@
 
 🌐 [English](GETTING-STARTED.md) · [Svenska](GETTING-STARTED.sv.md) · **Español**
 
-¡Bienvenido/a! Esta guía te lleva desde una copia nueva de FinKoll hasta iniciar
-sesión por primera vez. No se asumen conocimientos previos. Funciona en
-**Linux, macOS y Windows**.
-
-Vas a:
-
-1. Instalar el único requisito
-2. Descargar FinKoll
-3. Crear tu configuración — incluida **tu propia contraseña de acceso**
-4. Iniciar la aplicación
-5. Iniciar sesión
-
-Tiempo total: unos 10 minutos.
-
-> **La versión corta:** FinKoll no tiene pantalla de registro. Creas tu nombre de
-> usuario y contraseña *una sola vez*, de antemano, colocándolos en un archivo de
-> configuración antes del primer inicio. Los pasos 3a–3d te guían.
+Funcionando en **tres pasos, unos 5 minutos**. Un script de instalación hace lo
+difícil por ti — tú solo eliges un nombre de usuario y una contraseña.
 
 ---
 
-## Paso 1 — Instala el requisito
+## 1. Instala un requisito
 
-Elige **una** de estas opciones. Docker es la más sencilla y la recomendada.
+Elige uno (Docker es lo más fácil):
 
-- **Opción A — Docker (recomendada):** instala
-  [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Windows/macOS)
-  o Docker Engine + Compose v2 (Linux). En Windows, Docker Desktop configura WSL2
-  por ti.
-- **Opción B — Node.js (sin Docker):** instala
-  [Node.js 20 o posterior](https://nodejs.org) (incluye `npm`).
+- **[Docker Desktop](https://www.docker.com/products/docker-desktop/)** — recomendado
+- o **[Node.js 20+](https://nodejs.org)**
 
-Necesitas Node.js para el paso de la contraseña de abajo **aunque hayas elegido
-Docker** — pero tranquilo/a, también hay una alternativa solo con Docker para eso
-(paso 3c).
-
----
-
-## Paso 2 — Descarga FinKoll
+## 2. Descarga FinKoll
 
 ```bash
 git clone https://github.com/<tu-usuario>/FinKoll.git
 cd FinKoll
 ```
 
-(O descarga el ZIP desde GitHub, descomprímelo y entra en la carpeta con `cd`.)
+(O descarga el ZIP desde GitHub, descomprímelo y abre la carpeta en una terminal.)
 
----
+## 3. Ejecuta el script de instalación
 
-## Paso 3 — Crea tu configuración (aquí defines tu contraseña)
-
-FinKoll lee cuatro valores de un archivo de entorno. Vas a generar dos secretos
-aleatorios, elegir un nombre de usuario y crear una contraseña.
-
-### 3a. Copia el archivo de ejemplo
-
-La ubicación del archivo depende de cómo vayas a ejecutar la aplicación:
-
-| Cómo la vas a ejecutar | Crea el archivo en |
-| ---------------------- | ------------------ |
-| Docker (paso 4A)       | `.env` en la raíz del proyecto |
-| Node.js (paso 4B)      | `backend/.env` |
-
-- **Linux / macOS:**
+- **macOS / Linux:**
   ```bash
-  cp .env.example .env          # Docker
-  # o
-  cp .env.example backend/.env  # Node.js
+  bash scripts/setup.sh
   ```
 - **Windows (PowerShell):**
   ```powershell
-  Copy-Item .env.example .env           # Docker
-  # o
-  Copy-Item .env.example backend\.env   # Node.js
+  powershell -ExecutionPolicy Bypass -File scripts\setup.ps1
   ```
 
-### 3b. Genera los dos secretos
+Te pedirá:
 
-**`DB_ENCRYPTION_KEY`** — debe tener **exactamente 32 caracteres** (cifra tu base
-de datos):
+1. Elegir cómo ejecutarlo → elige **Docker**
+2. Elegir un **nombre de usuario** (o pulsa Enter para `admin`)
+3. Elegir una **contraseña** (se escribe dos veces)
 
-- **Linux / macOS:** `openssl rand -hex 16`
-- **Windows (PowerShell):**
-  ```powershell
-  -join ((48..57)+(97..102) | Get-Random -Count 32 | ForEach-Object {[char]$_})
-  ```
+Todo lo demás — la clave de cifrado, el secreto de seguridad y el hash de tu
+contraseña — se genera automáticamente y se guarda en tu archivo de
+configuración. Cuando pregunte **“Start it now?”**, responde **sí** (`y`).
 
-**`JWT_SECRET`** — cualquier cadena aleatoria larga (se usa para firmar las
-sesiones de acceso):
+## 4. Abre e inicia sesión
 
-- **Cualquier plataforma con Node.js:**
-  ```bash
-  node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-  ```
+Abre la dirección que imprimió el script — **http://localhost** con Docker — e
+inicia sesión con el nombre de usuario y la contraseña que acabas de elegir.
+¡Listo! 🎉
 
-Copia cada resultado — los pegarás en el paso 3d.
-
-### 3c. Crea tu contraseña de acceso 🔑
-
-FinKoll nunca almacena tu contraseña directamente — almacena un **hash bcrypt**
-de ella. Generas ese hash una vez y lo pegas en la configuración. Sustituye
-`ElijeUnaContrasenaFuerte` por la contraseña con la que realmente quieras entrar.
-
-- **Si tienes Node.js instalado** (ejecuta desde la carpeta `backend`):
-  ```bash
-  cd backend
-  npm install        # solo la primera vez
-  node -e "require('bcryptjs').hash('ElijeUnaContrasenaFuerte', 12).then(console.log)"
-  cd ..
-  ```
-
-- **Solo con Docker (sin Node.js instalado):**
-  ```bash
-  docker run --rm node:20-alpine sh -lc "npm i -s bcryptjs && node -e \"require('bcryptjs').hash('ElijeUnaContrasenaFuerte',12).then(console.log)\""
-  ```
-
-La salida se parece a `$2a$12$Xa1b2c3...` — ese es tu hash de contraseña. Cópialo.
-
-> **Recuerda la contraseña en sí** — el hash es unidireccional y no se puede
-> revertir. Si la olvidas, simplemente generas un hash nuevo y actualizas la
-> configuración (tus datos no se ven afectados). Consulta
-> [Cambiar tu contraseña más adelante](#cambiar-tu-contraseña-más-adelante).
-
-### 3d. Rellena el archivo
-
-Abre el archivo que creaste en 3a y define los cuatro valores:
-
-```dotenv
-# Cadena aleatoria larga del paso 3b (JWT_SECRET)
-JWT_SECRET=pega-aqui-el-secreto-jwt
-
-# EXACTAMENTE 32 caracteres del paso 3b (DB_ENCRYPTION_KEY)
-DB_ENCRYPTION_KEY=pega-aqui-la-clave-de-32-caracteres
-
-# El nombre de usuario que escribirás en la pantalla de acceso
-ADMIN_USERNAME=admin
-
-# El hash bcrypt del paso 3c — NO tu contraseña en texto plano
-ADMIN_PASSWORD_HASH=pega-aqui-el-hash
-```
-
-> ⚠️ **Usuarios de Docker — escapa los signos `$`.** Un hash bcrypt contiene
-> caracteres `$`, que Docker Compose trata de forma especial. En el archivo
-> **`.env` de la raíz**, duplica cada `$`: escribe `$2a$12$abc...` como
-> `$$2a$$12$$abc...`. (Los usuarios de Node.js que editan `backend/.env` **no**
-> necesitan hacer esto.)
+La interfaz aparece en **inglés, sueco o español** según el idioma de tu
+navegador, y puedes cambiarlo cuando quieras desde el menú.
 
 ---
 
-## Paso 4 — Inicia la aplicación
+## Bueno saber
 
-### Opción 4A — Docker (recomendada)
+- **Tus datos** viven en una base de datos cifrada en `data/`, creada en el primer
+  inicio, con copias de seguridad automáticas en `data/backups/`.
+- **Guarda bien la clave de cifrado.** El script la guarda en tu archivo de
+  configuración (`.env`); la base de datos no se puede abrir sin ella y no hay
+  recuperación si se pierde. No la cambies después.
+- **Cambia tu contraseña** cuando quieras desde **Configuración** dentro de la
+  app, o vuelve a ejecutar el script de instalación.
 
-```bash
-docker compose up -d --build
-```
+## Iniciarlo más adelante (sin el script)
 
-Luego abre **http://localhost** en tu navegador.
-
-- Ver registros: `docker compose logs -f`
-- Detener: `docker compose down`
-
-> Si el puerto 80 está ocupado, edita `docker-compose.yml` y cambia el puerto del
-> frontend (p. ej. `"8080:80"`), luego abre http://localhost:8080.
-
-### Opción 4B — Node.js (modo desarrollo)
-
-```bash
-npm install --prefix backend
-npm install --prefix frontend
-```
-
-Luego inicia ambos servidores:
-
-- **Linux / macOS:** `bash scripts/start.sh`
-- **Windows (PowerShell)** — dos terminales:
-  ```powershell
-  npm run dev --prefix backend
-  ```
-  ```powershell
-  npm run dev --prefix frontend
-  ```
-
-Luego abre **http://localhost:5173**.
-
----
-
-## Paso 5 — Inicia sesión
-
-Usa el **`ADMIN_USERNAME`** que definiste y la **contraseña en texto plano** que
-elegiste en el paso 3c (no el hash). ¡Ya estás dentro! 🎉
-
-La interfaz aparece automáticamente en **inglés, sueco o español** según el idioma
-de tu navegador — puedes cambiarlo en cualquier momento desde la barra lateral (o
-el menú en móvil).
-
----
-
-## Qué ocurre en el primer inicio
-
-- Se crea una **base de datos SQLite cifrada** en `data/` con un conjunto inicial
-  de categorías y una casa — renombra o amplía lo que quieras en
-  **Configuración**.
-- Se escriben copias de seguridad automáticas en `data/backups/` en cada inicio y
-  antes de cada actualización.
-
-**Mantén tu `DB_ENCRYPTION_KEY` segura y sin cambios.** La base de datos no se
-puede abrir sin ella, y no hay recuperación posible si se pierde.
-
----
-
-## Cambiar tu contraseña más adelante
-
-1. Genera un hash nuevo (repite el paso 3c con tu nueva contraseña).
-2. Pégalo en `ADMIN_PASSWORD_HASH` en tu `.env` (recuerda el escape `$$` para
-   Docker).
-3. Reinicia: `docker compose up -d` (Docker) o reinicia los servidores de
-   desarrollo.
-
-Tus datos quedan intactos. También puedes cambiar la contraseña desde la propia
-aplicación en **Configuración** una vez que hayas iniciado sesión.
-
----
+- **Docker:** `docker compose up -d --build` → http://localhost
+  (detener con `docker compose down`)
+- **Node.js:** `bash scripts/start.sh` → http://localhost:5173
 
 ## Solución de problemas
 
-| Síntoma | Solución |
-| ------- | -------- |
-| La app no arranca, error sobre la clave de cifrado | `DB_ENCRYPTION_KEY` debe tener **exactamente 32 caracteres**. |
-| El inicio de sesión siempre falla | Asegúrate de que `ADMIN_PASSWORD_HASH` sea el **hash**, no la contraseña en texto plano — y para Docker que cada `$` esté duplicado a `$$`. |
-| "Port already in use" (Docker) | Cambia la asignación de puerto del frontend en `docker-compose.yml`. |
-| No puedo acceder a la app desde otro dispositivo | Define `FRONTEND_URL` en `.env` con la IP de la máquina (p. ej. `http://192.168.1.50:5173`). |
+| Problema | Solución |
+| -------- | -------- |
+| El inicio de sesión siempre falla | Vuelve a ejecutar `scripts/setup.sh` y define la contraseña otra vez. |
+| “Port already in use” (Docker) | Cambia el puerto del frontend en `docker-compose.yml` (p. ej. `"8080:80"`). |
+| Acceder desde otro dispositivo | Vuelve a ejecutar el script e introduce la dirección de esa máquina (p. ej. `http://192.168.1.50`) cuando pregunte por la URL. |
 
-¿Necesitas más detalles? Consulta el [README](README.md) completo.
+¿Quieres los detalles de cada paso? Consulta el [README](README.md) completo.

@@ -12,12 +12,12 @@ interface KpiCardProps {
 
 export function KpiCard({ label, value, sub, positive, className }: KpiCardProps) {
   return (
-    <Card className={cn("flex-1 min-w-0", className)}>
-      <CardContent className="p-5">
+    <Card className={cn("min-w-0", className)}>
+      <CardContent className="p-4 sm:p-5">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
         <p
           className={cn(
-            "mt-1 text-2xl font-bold tabular-nums",
+            "mt-1 text-xl sm:text-2xl font-bold tabular-nums break-words",
             positive === true      && "text-green-600",
             positive === "warning" && "text-orange-500",
             positive === false     && "text-red-600"

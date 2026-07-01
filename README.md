@@ -12,6 +12,7 @@ A local-first household budget web application with AES-256 encrypted storage, e
 ## Table of Contents
 
 - [Getting Started](GETTING-STARTED.md)
+- [Updating (keep your data)](UPDATING.md)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Requirements](#requirements)

@@ -344,7 +344,7 @@ function HouseForm({
           {/* Mandatory inputs */}
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">{t("electricity.monthlyInputs")}</p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <NumField label={t("electricity.tibberTotal")} value={tibberTotal} onChange={setTibber} required />
               <NumField label={t("electricity.totalKwhConsumed")} value={totalKwh} onChange={setTotalKwh} required />
               <NumField label={t("electricity.subscriptionMonthly")} suffix={subShared ? t("electricity.sharedTag") : undefined}
@@ -442,7 +442,7 @@ export function Electricity() {
       </div>
 
       {elec && (
-        <div className="flex gap-4 flex-wrap">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
           <KpiCard label={t("electricity.totalKwh")}  value={fmtKwh(elec.totals.totalKwh)} />
           <KpiCard label={t("electricity.totalBill")} value={fmt(elec.totals.totalBill)} />
           <KpiCard label={t("electricity.totalEv")}   value={fmt(elec.totals.totalEvCost)} />

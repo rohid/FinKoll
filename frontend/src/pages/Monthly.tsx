@@ -419,7 +419,7 @@ export function Monthly() {
         </div>
       )}
 
-      <div className="flex gap-4 flex-wrap">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         <KpiCard label={t("monthly.income")}     value={fmt(summary?.totalIncome ?? 0)}   positive={true} />
         <KpiCard label={t("monthly.expenses")}   value={fmt(summary?.totalExpenses ?? 0)} />
         <KpiCard label={t("monthly.savings")}    value={fmt(summary?.totalSavings ?? 0)} />
