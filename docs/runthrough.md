@@ -1,5 +1,7 @@
 # FinKoll — Visual Runthrough
 
+🌐 **English** · [Svenska](runthrough.sv.md) · [Español](runthrough.es.md)
+
 A guided tour of every screen in FinKoll, captured from a demo instance seeded
 with a full year of realistic household data. All figures are fictional.
 

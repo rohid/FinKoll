@@ -35,7 +35,8 @@ A local-first household budget web application with AES-256 encrypted storage, e
 ## Screenshots
 
 A few highlights — see the **[full visual runthrough](docs/runthrough.md)** for
-every screen. (Demo data; all figures fictional.)
+every screen ([Svenska](docs/runthrough.sv.md) · [Español](docs/runthrough.es.md)).
+(Demo data; all figures fictional.)
 
 | Dashboard | Electricity |
 |---|---|
