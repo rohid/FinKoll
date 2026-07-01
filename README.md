@@ -13,6 +13,7 @@ A local-first household budget web application with AES-256 encrypted storage, e
 
 - [Getting Started](GETTING-STARTED.md)
 - [Updating (keep your data)](UPDATING.md)
+- [Screenshots](#screenshots)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Requirements](#requirements)
@@ -28,6 +29,21 @@ A local-first household budget web application with AES-256 encrypted storage, e
 - [Languages](#languages)
 - [License](#license)
 - [Default Categories](#default-categories)
+
+---
+
+## Screenshots
+
+A few highlights — see the **[full visual runthrough](docs/runthrough.md)** for
+every screen. (Demo data; all figures fictional.)
+
+| Dashboard | Electricity |
+|---|---|
+| [![Dashboard](docs/screenshots/dashboard.png)](docs/screenshots/dashboard.png) | [![Electricity](docs/screenshots/electricity.png)](docs/screenshots/electricity.png) |
+
+| Analytics | Worksheets |
+|---|---|
+| [![Analytics](docs/screenshots/analytics.png)](docs/screenshots/analytics.png) | [![Worksheet editor](docs/screenshots/worksheet-editor.png)](docs/screenshots/worksheet-editor.png) |
 
 ---
 

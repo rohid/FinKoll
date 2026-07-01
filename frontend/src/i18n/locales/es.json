@@ -549,7 +549,8 @@
     "delete": "Eliminar",
     "deleteConfirm": "¿Eliminar esta entrada de hipoteca?",
     "noMortgages": "No hay hipotecas añadidas.",
-    "override": "Pago mensual manual (dejar vacío para usar la fórmula)"
+    "override": "Pago mensual manual (dejar vacío para usar la fórmula)",
+    "yearsUnit": "años"
   },
   "sql": {
     "title": "Consola SQL",

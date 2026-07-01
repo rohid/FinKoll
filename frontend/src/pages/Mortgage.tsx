@@ -138,7 +138,7 @@ function MortgageCard({ mortgage }: { mortgage: Mortgage }) {
               {[
                 { label: t("mortgage.principal"),     value: fmt(mortgage.principalAmount) },
                 { label: t("mortgage.currentRate"),   value: `${mortgage.interestRate}%` },
-                { label: t("mortgage.years"),         value: `${mortgage.amortizationYears} år` },
+                { label: t("mortgage.years"),         value: `${mortgage.amortizationYears} ${t("mortgage.yearsUnit")}` },
                 { label: t("mortgage.monthlyPayment"), value: fmt(mortgage.calculatedPayment), bold: true },
                 { label: t("mortgage.interestPortion"), value: fmt(interestPortion) },
                 { label: t("mortgage.amortPortion"),   value: fmt(Math.max(0, amortPortion)) },

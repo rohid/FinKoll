@@ -549,7 +549,8 @@
     "delete": "Delete",
     "deleteConfirm": "Delete this mortgage entry?",
     "noMortgages": "No mortgages added yet.",
-    "override": "Override monthly payment (leave blank to use formula)"
+    "override": "Override monthly payment (leave blank to use formula)",
+    "yearsUnit": "yrs"
   },
   "sql": {
     "title": "SQL Console",

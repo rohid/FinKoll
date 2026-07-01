@@ -549,7 +549,8 @@
     "delete": "Ta bort",
     "deleteConfirm": "Ta bort denna bolånepost?",
     "noMortgages": "Inga bolån tillagda ännu.",
-    "override": "Ange månadsbetalning manuellt (lämna tomt för att använda formeln)"
+    "override": "Ange månadsbetalning manuellt (lämna tomt för att använda formeln)",
+    "yearsUnit": "år"
   },
   "sql": {
     "title": "SQL-konsol",
