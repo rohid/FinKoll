@@ -90,20 +90,39 @@ npm --version    # must be >= 9
 
 ## First-Time Setup
 
+New here? The [Getting Started guide](GETTING-STARTED.md) walks through this in a
+few minutes (also in [Svenska](GETTING-STARTED.sv.md) /
+[Español](GETTING-STARTED.es.md)).
+
 ### 1. Clone the repository
 
 ```bash
-git clone <your-repo-url> FinKoll
+git clone https://github.com/rohid/FinKoll.git
 cd FinKoll
 ```
 
-### 2. Create the environment file
+### 2. Configure — Option A: setup script (recommended)
+
+The interactive script generates the secrets, asks for a username and password,
+hashes the password, and writes your `.env` to the right place (root `.env` for
+Docker, `backend/.env` for Node dev). It can start the app for you at the end.
+
+```bash
+bash scripts/setup.sh                                  # macOS / Linux
+powershell -ExecutionPolicy Bypass -File scripts\setup.ps1   # Windows
+```
+
+Then jump to [Running in Development](#running-in-development) or
+[Running with Docker](#running-with-docker-production).
+
+### 2. Configure — Option B: manual
+
+Prefer to do it by hand? Copy the example to `backend/.env` (Node dev) or `.env`
+(Docker) and fill in every value:
 
 ```bash
 cp .env.example backend/.env
 ```
-
-Open `backend/.env` and fill in every value:
 
 ```dotenv
 # Long random string — used to sign JWT tokens
@@ -130,6 +149,7 @@ node -e "const b=require('bcryptjs'); b.hash('yourpassword',12).then(console.log
 ```
 
 > **Important:** `DB_ENCRYPTION_KEY` must be **exactly 32 characters**. The app will refuse to start if it is missing.
+> For Docker, double every `$` in the bcrypt hash (`$` → `$$`) — the setup script handles this for you.
 
 ### 3. Install dependencies
 

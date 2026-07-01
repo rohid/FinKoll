@@ -17,7 +17,7 @@ Elige uno (Docker es lo más fácil):
 ## 2. Descarga FinKoll
 
 ```bash
-git clone https://github.com/<tu-usuario>/FinKoll.git
+git clone https://github.com/rohid/FinKoll.git
 cd FinKoll
 ```
 
