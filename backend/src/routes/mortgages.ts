@@ -14,6 +14,7 @@ const MortgageSchema = z.object({
   monthlyPaymentOverride: z.number().positive().optional(),
   effectiveFrom:          z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   notes:                  z.string().optional(),
+  forecast:               z.string().optional(),   // saved rate/amortization changes (JSON)
 });
 
 // Amortising loan monthly payment formula
@@ -24,15 +25,22 @@ export function calcMonthlyPayment(principal: number, annualRatePct: number, yea
   return (principal * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
 }
 
+// Total monthly payment. A manual value is the monthly *amortization* (principal
+// paydown, excl. interest), so the total = interest + that amount. If no manual
+// value is set, use the calculated annuity payment (which already includes both).
+function paymentFor(m: { principalAmount: number; interestRate: number; amortizationYears: number; monthlyPaymentOverride: number | null }): number {
+  if (m.monthlyPaymentOverride != null) {
+    const monthlyInterest = m.principalAmount * (m.interestRate / 100 / 12);
+    return m.monthlyPaymentOverride + monthlyInterest;
+  }
+  return calcMonthlyPayment(m.principalAmount, m.interestRate, m.amortizationYears);
+}
+
 // GET /api/mortgages  — all entries, grouped by name (latest entry first per name)
 router.get("/", (_req: Request, res: Response) => {
   const rows = db.select().from(mortgages).orderBy(mortgages.name, mortgages.effectiveFrom).all();
   // Attach calculated payment to each row
-  const enriched = rows.map((r) => ({
-    ...r,
-    calculatedPayment: r.monthlyPaymentOverride
-      ?? calcMonthlyPayment(r.principalAmount, r.interestRate, r.amortizationYears),
-  }));
+  const enriched = rows.map((r) => ({ ...r, calculatedPayment: paymentFor(r) }));
   res.json(enriched);
 });
 
@@ -43,8 +51,7 @@ router.post("/", (req: Request, res: Response) => {
   const row = db.insert(mortgages).values(parsed.data).returning().get();
   res.status(201).json({
     ...row,
-    calculatedPayment: row.monthlyPaymentOverride
-      ?? calcMonthlyPayment(row.principalAmount, row.interestRate, row.amortizationYears),
+    calculatedPayment: paymentFor(row),
   });
 });
 
@@ -57,8 +64,7 @@ router.put("/:id", (req: Request, res: Response) => {
   if (!row) { res.status(404).json({ error: "Not found" }); return; }
   res.json({
     ...row,
-    calculatedPayment: row.monthlyPaymentOverride
-      ?? calcMonthlyPayment(row.principalAmount, row.interestRate, row.amortizationYears),
+    calculatedPayment: paymentFor(row),
   });
 });
 

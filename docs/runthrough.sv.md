@@ -77,8 +77,11 @@ visar dina aktuella budgetsummor som namngivna värden du kan referera till.
 
 ## Bolån
 
-Håll koll på bolån med kapital, ränta, amorteringstid och beräknade
-månadsbetalningar.
+Håll koll på bolån med en **fast månadsamortering** plus ränta (totalt = ränta +
+amortering). **Betalningsprognosen** låter dig planera framtida ändringar av ränta
+och/eller amortering ("om 3 månader höjs räntan till 5 %"), se effekten på din
+månadsbetalning, totala ränta och återbetalningstid — och **spara den** så att den
+finns kvar nästa gång. Perfekt för att planera framåt eller förhandla med banken.
 
 ![Bolån](screenshots/mortgage.png)
 

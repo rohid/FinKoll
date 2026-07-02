@@ -78,6 +78,7 @@ export const mortgages = sqliteTable("mortgages", {
   monthlyPaymentOverride:  real("monthly_payment_override"),       // null = use formula
   effectiveFrom:           text("effective_from").notNull(),       // YYYY-MM-DD
   notes:                   text("notes"),
+  forecast:                text("forecast"),                       // JSON array of saved rate/amortization changes
 });
 
 export const importMappings = sqliteTable("import_mappings", {

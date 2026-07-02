@@ -75,8 +75,11 @@ panel exposes your live budget totals as named values you can reference.
 
 ## Mortgage
 
-Track mortgages with principal, interest rate, amortization, and computed
-monthly payments.
+Track mortgages with a **fixed monthly amortization** plus interest (total =
+interest + amortization). The **payment forecast** lets you plan future changes
+to the rate and/or amortization ("in 3 months the rate rises to 5%"), see the
+impact on your monthly payment, total interest, and payoff time — and **save it**
+so it's there next time. Great for planning ahead or negotiating with the bank.
 
 ![Mortgage](screenshots/mortgage.png)
 

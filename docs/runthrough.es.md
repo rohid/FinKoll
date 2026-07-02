@@ -81,8 +81,12 @@ valores con nombre que puedes referenciar.
 
 ## Hipoteca
 
-Controla hipotecas con capital, tipo de interés, amortización y pagos mensuales
-calculados.
+Controla hipotecas con una **amortización mensual fija** más el interés (total =
+interés + amortización). La **previsión de pagos** te permite planificar futuros
+cambios del tipo y/o la amortización ("dentro de 3 meses el tipo sube al 5 %"), ver
+el impacto en tu cuota mensual, el interés total y el tiempo de liquidación — y
+**guardarla** para tenerla la próxima vez. Ideal para planificar o negociar con el
+banco.
 
 ![Hipoteca](screenshots/mortgage.png)
 

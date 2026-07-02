@@ -239,6 +239,7 @@ export interface Mortgage {
   monthlyPaymentOverride?: number;
   effectiveFrom: string;
   notes?: string;
+  forecast?: string;
   calculatedPayment: number;
 }
 

@@ -57,8 +57,8 @@ språk, och du kan byta när som helst från menyn.
 
 ## Bra att veta
 
-- **Dina data** ligger i en krypterad databas under `data/`, som skapas vid
-  första starten, med automatiska säkerhetskopior i `data/backups/`.
+- **Din data** lagras i en krypterad databas i mappen `data/`, som skapas vid
+  första starten. Automatiska säkerhetskopior sparas i `data/backups/`.
 - **Håll krypteringsnyckeln säker.** Skriptet sparar den i din konfigurationsfil
   (`.env`); databasen kan inte öppnas utan den, och det finns ingen återställning
   om den förloras. Ändra den inte senare.

@@ -107,8 +107,8 @@
         "title": "Hipoteca",
         "desc": "Sigue préstamos y prueba escenarios.",
         "points": [
-          "Guarda cada hipoteca con su tipo y plazo",
-          "Modela escenarios de tipos de interés"
+          "Amortización mensual fija + interés (total = interés + amortización)",
+          "Prevé cambios futuros de tipo/amortización, cuota mensual y liquidación — y guárdala"
         ]
       },
       {
@@ -549,8 +549,27 @@
     "delete": "Eliminar",
     "deleteConfirm": "¿Eliminar esta entrada de hipoteca?",
     "noMortgages": "No hay hipotecas añadidas.",
-    "override": "Pago mensual manual (dejar vacío para usar la fórmula)",
-    "yearsUnit": "años"
+    "override": "Amortización mensual (kr, sin interés; vacío = calcular)",
+    "yearsUnit": "años",
+    "forecastTitle": "Previsión de pagos",
+    "forecastHint": "Tu amortización es fija y solo cambia cuando tú decides (y solo para pagos futuros). Planifica futuros cambios del tipo y/o la amortización y ve el impacto en tu cuota mensual, el interés total y el tiempo de liquidación.",
+    "addChange": "Añadir cambio",
+    "inMonthsLabel": "En (meses)",
+    "remove": "Quitar",
+    "now": "Ahora",
+    "inMonths": "+{{n}} mes",
+    "when": "Cuándo",
+    "lifetimeAtCurrent": "Interés total al tipo actual",
+    "lifetimeForecast": "Interés total según previsión",
+    "lifetimeDelta": "Diferencia total",
+    "amortization": "Amortización",
+    "forecastAmort": "Nueva amortización (kr)",
+    "payoffForecast": "Liquidado en (previsión)",
+    "payoffBaseline": "Liquidado en (plan actual)",
+    "monthsShort": "mes",
+    "monthlyAmort": "Amortización mensual",
+    "saveForecast": "Guardar previsión",
+    "forecastSaved": "Guardado"
   },
   "sql": {
     "title": "Consola SQL",

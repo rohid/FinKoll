@@ -107,8 +107,8 @@
         "title": "Bolån",
         "desc": "Följ lån och testa scenarier.",
         "points": [
-          "Spara varje lån med ränta och löptid",
-          "Modellera ränteförändringar"
+          "Fast månadsamortering + ränta (totalt = ränta + amortering)",
+          "Prognostisera framtida ränte-/amorteringsändringar, månadsbetalning & återbetalning — och spara den"
         ]
       },
       {
@@ -145,7 +145,7 @@
           "Kategorier, återkommande mallar och mål",
           "Utseende (färg/intensitet för radränder)",
           "Automatiska dagliga säkerhetskopior plus manuell kopiering & återställning",
-          "Byt lösenord — dina data är krypterade"
+          "Byt lösenord — din data är krypterad"
         ]
       }
     ],
@@ -160,7 +160,7 @@
         "desc": "FinKoll säkerhetskopierar dagligen och före varje uppdatering, men du kan också kopiera manuellt under Inställningar → Säkerhetskopiering."
       },
       {
-        "title": "Dina data är privata",
+        "title": "Din data är privat",
         "desc": "Databasen är krypterad och lämnar aldrig din egen server."
       },
       {
@@ -549,8 +549,27 @@
     "delete": "Ta bort",
     "deleteConfirm": "Ta bort denna bolånepost?",
     "noMortgages": "Inga bolån tillagda ännu.",
-    "override": "Ange månadsbetalning manuellt (lämna tomt för att använda formeln)",
-    "yearsUnit": "år"
+    "override": "Amortering per månad (kr, exkl. ränta; tom = beräkna)",
+    "yearsUnit": "år",
+    "forecastTitle": "Betalningsprognos",
+    "forecastHint": "Din amortering är fast och ändras bara när du väljer det (och endast för framtida betalningar). Planera framtida ändringar av ränta och/eller amortering och se effekten på din månadsbetalning, totala ränta och återbetalningstid.",
+    "addChange": "Lägg till ändring",
+    "inMonthsLabel": "Om (månader)",
+    "remove": "Ta bort",
+    "now": "Nu",
+    "inMonths": "+{{n}} mån",
+    "when": "När",
+    "lifetimeAtCurrent": "Total ränta vid nuvarande ränta",
+    "lifetimeForecast": "Total ränta enligt prognos",
+    "lifetimeDelta": "Skillnad över löptiden",
+    "amortization": "Amortering",
+    "forecastAmort": "Ny amortering (kr)",
+    "payoffForecast": "Slutbetald om (prognos)",
+    "payoffBaseline": "Slutbetald om (nuvarande plan)",
+    "monthsShort": "mån",
+    "monthlyAmort": "Amortering per månad",
+    "saveForecast": "Spara prognos",
+    "forecastSaved": "Sparad"
   },
   "sql": {
     "title": "SQL-konsol",

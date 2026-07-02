@@ -107,8 +107,8 @@
         "title": "Mortgage",
         "desc": "Track loans and try scenarios.",
         "points": [
-          "Store each mortgage with its rate and term",
-          "Model interest-rate scenarios"
+          "Fixed monthly amortization + interest (total = interest + amortization)",
+          "Forecast future rate/amortization changes, monthly payment & payoff — and save it"
         ]
       },
       {
@@ -549,8 +549,27 @@
     "delete": "Delete",
     "deleteConfirm": "Delete this mortgage entry?",
     "noMortgages": "No mortgages added yet.",
-    "override": "Override monthly payment (leave blank to use formula)",
-    "yearsUnit": "yrs"
+    "override": "Monthly amortization (kr, excl. interest; blank = calculate)",
+    "yearsUnit": "yrs",
+    "forecastTitle": "Payment forecast",
+    "forecastHint": "Your amortization is fixed and only changes when you choose to (and only for future payments). Plan future changes to the rate and/or amortization and see the impact on your monthly payment, total interest, and payoff time.",
+    "addChange": "Add change",
+    "inMonthsLabel": "In (months)",
+    "remove": "Remove",
+    "now": "Now",
+    "inMonths": "+{{n}} mo",
+    "when": "When",
+    "lifetimeAtCurrent": "Total interest at current rate",
+    "lifetimeForecast": "Total interest with forecast",
+    "lifetimeDelta": "Lifetime difference",
+    "amortization": "Amortization",
+    "forecastAmort": "New amortization (kr)",
+    "payoffForecast": "Paid off in (forecast)",
+    "payoffBaseline": "Paid off in (current plan)",
+    "monthsShort": "mo",
+    "monthlyAmort": "Monthly amortization",
+    "saveForecast": "Save forecast",
+    "forecastSaved": "Saved"
   },
   "sql": {
     "title": "SQL Console",

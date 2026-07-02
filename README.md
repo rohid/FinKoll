@@ -21,12 +21,15 @@ A local-first household budget web application with AES-256 encrypted storage, e
 - [Running in Development](#running-in-development)
 - [Updating the Application](#updating-the-application)
 - [Running with Docker (Production)](#running-with-docker-production)
+- [Production deployment](#production-deployment)
 - [Security](#security)
 - [Application Overview](#application-overview)
 - [Electricity Module](#electricity-module)
 - [Backup & Recovery](#backup--recovery)
 - [Project Structure](#project-structure)
 - [Languages](#languages)
+- [Roadmap](docs/ROADMAP.md)
+- [Changelog](CHANGELOG.md)
 - [License](#license)
 - [Default Categories](#default-categories)
 
@@ -251,6 +254,27 @@ The `data/` directory is volume-mounted so the encrypted database and backups su
 make docker-logs    # tail logs from both containers
 make docker-down    # stop the stack
 ```
+
+---
+
+## Production deployment
+
+Taking FinKoll beyond your LAN? These guides cover trusted TLS and cloud hosting,
+with security as the first consideration:
+
+- **[TLS & Let's Encrypt](docs/deployment/tls-letsencrypt.md)**
+  ([Svenska](docs/deployment/tls-letsencrypt.sv.md) ·
+  [Español](docs/deployment/tls-letsencrypt.es.md)) — a real, browser-trusted,
+  auto-renewing certificate (Caddy or certbot), plus importing the self-signed CA
+  for LAN-only setups.
+- **[Cloud hosting](docs/deployment/cloud-hosting.md)**
+  ([Svenska](docs/deployment/cloud-hosting.sv.md) ·
+  [Español](docs/deployment/cloud-hosting.es.md)) — Cloudflare (Tunnel + Access),
+  AWS, and Azure, each with a security baseline (no exposed ports, secrets in a
+  vault, encrypted volumes, off-box backups).
+
+See also **[Versioning & Releasing](docs/RELEASING.md)** and the
+**[Roadmap](docs/ROADMAP.md)**.
 
 ---
 
