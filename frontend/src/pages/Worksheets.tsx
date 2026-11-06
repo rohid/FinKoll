@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Table2, Scale, Wallet, TrendingUp, Wrench, Copy, Trash2, Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { ExperimentalBanner } from "@/components/ExperimentalBanner";
 
 const KIND_ICON: Record<string, typeof Table2> = {
   Comparison: Scale,
@@ -52,6 +53,7 @@ export function Worksheets() {
 
   return (
     <div className="space-y-6 max-w-4xl">
+      <ExperimentalBanner moduleKey="worksheets" />
       <div className="flex items-center gap-2">
         <Table2 size={22} className="text-muted-foreground" />
         <h1 className="text-2xl font-bold">{t("worksheets.title")}</h1>

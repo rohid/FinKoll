@@ -116,6 +116,15 @@ router.get("/houses", (_req: Request, res: Response) => {
 
 const HouseNameSchema = z.object({ name: z.string().trim().min(1).max(60) });
 
+// Patch: rename and/or set net-worth fields. All optional so a caller can touch
+// just one (valuation null clears it; ownershipPct is a 0–100 share percentage).
+const HousePatchSchema = z.object({
+  name: z.string().trim().min(1).max(60).optional(),
+  valuation: z.number().nonnegative().nullable().optional(),
+  valuationAsOf: z.string().nullable().optional(),
+  ownershipPct: z.number().min(0).max(100).optional(),
+}).refine((d) => Object.keys(d).length > 0, { message: "no fields to update" });
+
 // Add a house (e.g. a second/third property). New name, placed after existing.
 router.post("/houses", (req: Request, res: Response) => {
   const parsed = HouseNameSchema.safeParse(req.body);
@@ -128,15 +137,23 @@ router.post("/houses", (req: Request, res: Response) => {
   res.status(201).json(created);
 });
 
-// Rename a house.
+// Rename a house and/or update its net-worth fields (valuation, ownership share).
 router.patch("/houses/:id", (req: Request, res: Response) => {
   const id = parseInt(req.params.id);
-  const parsed = HouseNameSchema.safeParse(req.body);
+  const parsed = HousePatchSchema.safeParse(req.body);
   if (!id || !parsed.success) {
     res.status(400).json({ error: parsed.success ? "invalid id" : parsed.error.flatten() });
     return;
   }
-  const updated = db.update(houses).set({ name: parsed.data.name }).where(eq(houses.id, id)).returning().get();
+  // When a valuation is set without an explicit date, stamp it with today so the
+  // figure's age is visible; clearing the valuation clears the date too.
+  const patch = { ...parsed.data };
+  if (patch.valuation != null && patch.valuationAsOf === undefined) {
+    patch.valuationAsOf = new Date().toISOString().slice(0, 10);
+  } else if (patch.valuation === null) {
+    patch.valuationAsOf = null;
+  }
+  const updated = db.update(houses).set(patch).where(eq(houses.id, id)).returning().get();
   if (!updated) { res.status(404).json({ error: "house not found" }); return; }
   res.json(updated);
 });

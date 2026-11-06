@@ -1,5 +1,5 @@
 import { db } from "./index";
-import { categories, houses, appSettings } from "./schema";
+import { categories, categoryGroups, houses, appSettings } from "./schema";
 import { eq } from "drizzle-orm";
 
 export async function seed() {
@@ -22,9 +22,9 @@ export async function seed() {
       { name: "Expense Payment", type: "INCOME", subtype: "EXPENSE_PAYMENT", color: "#16a34a", sortOrder: 2 },
       { name: "Savings Injection", type: "INCOME", subtype: "SAVINGS_INJECTION", color: "#15803d", sortOrder: 3 },
       // Expenses
-      { name: "Rent / Mortgage", type: "EXPENSE", subtype: "BILL", color: "#ef4444", sortOrder: 10 },
-      { name: "Electricity", type: "EXPENSE", subtype: "BILL", color: "#f97316", sortOrder: 11 },
-      { name: "Insurance", type: "EXPENSE", subtype: "BILL", color: "#fb923c", sortOrder: 12 },
+      { name: "Rent / Mortgage", type: "EXPENSE", subtype: "BILL", color: "#ef4444", sortOrder: 10, isHousing: true },
+      { name: "Electricity", type: "EXPENSE", subtype: "BILL", color: "#f97316", sortOrder: 11, isHousing: true },
+      { name: "Insurance", type: "EXPENSE", subtype: "BILL", color: "#fb923c", sortOrder: 12, isHousing: true },
       { name: "Subscriptions", type: "EXPENSE", subtype: "BILL", color: "#f59e0b", sortOrder: 13 },
       { name: "Groceries", type: "EXPENSE", subtype: "BILL", color: "#eab308", sortOrder: 14 },
       { name: "Transport", type: "EXPENSE", subtype: "BILL", color: "#84cc16", sortOrder: 15 },
@@ -37,6 +37,33 @@ export async function seed() {
       { name: "Personal Savings (Person B)", type: "SAVINGS", subtype: "PERSONAL_B", color: "#ec4899", sortOrder: 24 },
     ])
     .run();
+
+  // Roll each seeded category up into its canonical group (the groups themselves are
+  // created by migration 0019, which runs before this seed). Keyed by the default
+  // category names we just inserted.
+  const groups = db.select().from(categoryGroups).all();
+  const gid = (name: string, type: string) => groups.find((g) => g.name === name && g.type === type)?.id ?? null;
+  const nameToGroup: Record<string, string> = {
+    "Salary": "Salary",
+    "Expense Payment": "Reimbursements",
+    "Savings Injection": "Transfers In",
+    "Rent / Mortgage": "Housing",
+    "Electricity": "Housing",
+    "Insurance": "Housing",
+    "Subscriptions": "Bills & Subscriptions",
+    "Groceries": "Food",
+    "Transport": "Transport",
+    "Other Expenses": "Other Expenses",
+    "Stock Savings": "Investments",
+    "Vacation Savings": "Goals",
+    "Specific Savings": "Goals",
+    "Personal Savings (Person A)": "Personal",
+    "Personal Savings (Person B)": "Personal",
+  };
+  for (const c of db.select().from(categories).all()) {
+    const g = nameToGroup[c.name];
+    if (g) db.update(categories).set({ groupId: gid(g, c.type) }).where(eq(categories.id, c.id)).run();
+  }
 
   // New databases start with a single house. Additional houses (a second/third
   // property) are added by the user from the Electricity page. Existing DBs that

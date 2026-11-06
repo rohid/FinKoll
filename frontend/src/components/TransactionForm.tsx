@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useCreateTransaction, useCategories } from "@/api/hooks";
+import { useCreateTransaction, useCategories, useHouses, useAppSetting, useTags, usePeople } from "@/api/hooks";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Select } from "./ui/select";
@@ -7,7 +7,7 @@ import { Scissors, Trash2 } from "lucide-react";
 import { fmt } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 
-interface SplitItem { description: string; amount: string; }
+interface SplitItem { description: string; amount: string; houseId: string; categoryId: string; } // "" = inherit the transaction's house/category
 
 interface TransactionFormProps {
   year: number;
@@ -17,8 +17,17 @@ interface TransactionFormProps {
 
 export function TransactionForm({ year, month, onDone }: TransactionFormProps) {
   const { data: categories } = useCategories();
+  const { data: houses } = useHouses();
+  const { data: tags } = useTags();
+  const { data: people } = usePeople();
+  const { data: primarySetting } = useAppSetting("primary_house_id");
   const create = useCreateTransaction();
   const { t } = useTranslation();
+
+  // Primary house: the saved setting, else the first house.
+  const primaryHouseId = primarySetting?.value
+    ? parseInt(primarySetting.value)
+    : houses?.[0]?.id;
 
   const defaultDate = `${year}-${String(month).padStart(2, "0")}-01`;
   const [date, setDate] = useState(defaultDate);
@@ -26,12 +35,32 @@ export function TransactionForm({ year, month, onDone }: TransactionFormProps) {
   const [amount, setAmount] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [notes, setNotes] = useState("");
+  // Optional attribution (who) + counterparty (payee) + orthogonal tags.
+  const [personId, setPersonId] = useState("");
+  const [payee, setPayee] = useState("");
+  const [tagIds, setTagIds] = useState<number[]>([]);
+  const toggleTag = (id: number) => setTagIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  // House: housing-type categories default to the primary house until overridden.
+  const [houseId, setHouseId] = useState("");
+  const [houseTouched, setHouseTouched] = useState(false);
+
+  function pickCategory(id: string) {
+    setCategoryId(id);
+    if (!houseTouched) {
+      const cat = (categories ?? []).find((c) => String(c.id) === id);
+      setHouseId(cat?.isHousing && primaryHouseId ? String(primaryHouseId) : "");
+    }
+  }
+
+  // Soft, non-blocking warnings returned by the server for the last saved entry
+  // (possible refund, likely duplicate). The save still goes through.
+  const [warnings, setWarnings] = useState<string[]>([]);
 
   // Split mode
   const [splitMode, setSplitMode] = useState(false);
   const [items, setItems] = useState<SplitItem[]>([
-    { description: "", amount: "" },
-    { description: "", amount: "" },
+    { description: "", amount: "", houseId: "", categoryId: "" },
+    { description: "", amount: "", houseId: "", categoryId: "" },
   ]);
 
   const itemsTotal = items.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
@@ -39,12 +68,12 @@ export function TransactionForm({ year, month, onDone }: TransactionFormProps) {
   function updateItem(idx: number, field: keyof SplitItem, val: string) {
     setItems((prev) => prev.map((it, i) => i === idx ? { ...it, [field]: val } : it));
   }
-  function addItem()         { setItems((prev) => [...prev, { description: "", amount: "" }]); }
+  function addItem()         { setItems((prev) => [...prev, { description: "", amount: "", houseId: "", categoryId: "" }]); }
   function removeItem(idx: number) { setItems((prev) => prev.filter((_, i) => i !== idx)); }
 
   function toggleSplit() {
     setSplitMode((v) => !v);
-    setItems([{ description: "", amount: "" }, { description: "", amount: "" }]);
+    setItems([{ description: "", amount: "", houseId: "", categoryId: "" }, { description: "", amount: "", houseId: "", categoryId: "" }]);
   }
 
   async function submit(e: React.FormEvent) {
@@ -55,20 +84,27 @@ export function TransactionForm({ year, month, onDone }: TransactionFormProps) {
       ? items.filter((i) => i.description.trim() && parseFloat(i.amount) > 0)
       : [];
 
-    await create.mutateAsync({
+    const res = await create.mutateAsync({
       date,
       description,
       amount: splitMode ? itemsTotal : parseFloat(amount),
       categoryId: parseInt(categoryId),
+      personId: personId ? parseInt(personId) : null,
+      payee: payee.trim() || null,
+      tagIds,
       notes: notes || undefined,
+      houseId: houseId ? parseInt(houseId) : null,
       items: validItems.length > 0
-        ? validItems.map((i) => ({ description: i.description.trim(), amount: parseFloat(i.amount) }))
+        ? validItems.map((i) => ({ description: i.description.trim(), amount: parseFloat(i.amount), houseId: i.houseId ? parseInt(i.houseId) : null, categoryId: i.categoryId ? parseInt(i.categoryId) : null }))
         : undefined,
     });
+    setWarnings((res as any)?.warnings ?? []);
 
     setDescription(""); setAmount(""); setNotes("");
+    setPersonId(""); setPayee(""); setTagIds([]);
+    setHouseId(""); setHouseTouched(false);
     setSplitMode(false);
-    setItems([{ description: "", amount: "" }, { description: "", amount: "" }]);
+    setItems([{ description: "", amount: "", houseId: "", categoryId: "" }, { description: "", amount: "", houseId: "", categoryId: "" }]);
     onDone?.();
   }
 
@@ -139,6 +175,34 @@ export function TransactionForm({ year, month, onDone }: TransactionFormProps) {
                 onChange={(e) => updateItem(idx, "amount", e.target.value)}
                 className="h-7 text-xs w-24"
               />
+              <Select
+                value={item.categoryId}
+                onChange={(e) => updateItem(idx, "categoryId", e.target.value)}
+                className="h-7 text-xs w-32"
+                title={t("transactionForm.category")}
+              >
+                <option value="">{t("transactionForm.inheritCategory")}</option>
+                {["INCOME", "EXPENSE", "SAVINGS"].map((type) => (
+                  <optgroup key={type} label={typeLabel[type]}>
+                    {(categories ?? []).filter((c) => c.type === type && c.isActive).map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </Select>
+              {(houses ?? []).length > 1 && (
+                <Select
+                  value={item.houseId}
+                  onChange={(e) => updateItem(idx, "houseId", e.target.value)}
+                  className="h-7 text-xs w-28"
+                  title={t("housing.house")}
+                >
+                  <option value="">{t("housing.inheritHouse")}</option>
+                  {(houses ?? []).map((h) => (
+                    <option key={h.id} value={h.id}>{h.name}</option>
+                  ))}
+                </Select>
+              )}
               {items.length > 2 && (
                 <button type="button" onClick={() => removeItem(idx)}
                   className="text-muted-foreground hover:text-destructive">
@@ -161,7 +225,7 @@ export function TransactionForm({ year, month, onDone }: TransactionFormProps) {
 
       <div className="space-y-1">
         <label className="text-xs font-medium text-muted-foreground">{t("transactionForm.category")}</label>
-        <Select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} required>
+        <Select value={categoryId} onChange={(e) => pickCategory(e.target.value)} required>
           <option value="">{t("transactionForm.selectCategory")}</option>
           {["INCOME", "EXPENSE", "SAVINGS"].map((type) => (
             <optgroup key={type} label={typeLabel[type]}>
@@ -178,6 +242,63 @@ export function TransactionForm({ year, month, onDone }: TransactionFormProps) {
         <Input value={notes} onChange={(e) => setNotes(e.target.value)}
           placeholder={t("transactionForm.notesPlaceholder")} />
       </div>
+
+      {/* Attribution: who (person) + counterparty (payee). Person only shown when any exist. */}
+      <div className="grid grid-cols-2 gap-3">
+        {(people ?? []).length > 0 && (
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">{t("transactionForm.person")}</label>
+            <Select value={personId} onChange={(e) => setPersonId(e.target.value)}>
+              <option value="">{t("transactionForm.noPerson")}</option>
+              {(people ?? []).map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </Select>
+          </div>
+        )}
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">{t("transactionForm.payee")}</label>
+          <Input value={payee} onChange={(e) => setPayee(e.target.value)} placeholder={t("transactionForm.payeePlaceholder")} />
+        </div>
+      </div>
+
+      {(tags ?? []).length > 0 && (
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">{t("transactionForm.tags")}</label>
+          <div className="flex flex-wrap gap-1.5">
+            {(tags ?? []).map((tag) => {
+              const on = tagIds.includes(tag.id);
+              return (
+                <button key={tag.id} type="button" onClick={() => toggleTag(tag.id)}
+                  className={`rounded-full border px-2.5 py-1 text-xs transition-colors ${on ? "text-white" : "text-muted-foreground hover:bg-muted"}`}
+                  style={on ? { backgroundColor: tag.color, borderColor: tag.color } : undefined}>
+                  {tag.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {(houses ?? []).length > 0 && (
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">{t("housing.house")}</label>
+          <Select value={houseId} onChange={(e) => { setHouseId(e.target.value); setHouseTouched(true); }}>
+            <option value="">{t("housing.noHouse")}</option>
+            {(houses ?? []).map((h) => (
+              <option key={h.id} value={h.id}>{h.name}</option>
+            ))}
+          </Select>
+        </div>
+      )}
+
+      {warnings.length > 0 && (
+        <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300 space-y-1">
+          {warnings.map((w) => (
+            <p key={w}>{w === "negativeAmount" ? t("transactionForm.warnNegative") : w === "duplicate" ? t("transactionForm.warnDuplicate") : w}</p>
+          ))}
+        </div>
+      )}
 
       <Button type="submit" className="w-full" disabled={create.isPending}>
         {create.isPending ? t("transactionForm.saving") : t("transactionForm.addTransaction")}

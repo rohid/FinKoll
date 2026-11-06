@@ -2,7 +2,8 @@ import { NavLink, useLocation } from "react-router-dom";
 import { Menu, LogOut, MoreHorizontal, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { useNavItems, useLogout, LangSelect, PRIMARY_PATHS } from "./nav";
+import type { NavItem } from "./nav";
+import { useNavItems, useGroupedNav, useLogout, LangSelect, PRIMARY_PATHS, useBetaGroupState, FlaskConical, ChevronRight } from "./nav";
 
 // Top bar on phones: brand + hamburger. The sidebar is hidden at this width, so
 // this gives the app a title and a way into the full nav drawer.
@@ -60,8 +61,30 @@ export function BottomTabBar({ onMore, className }: { onMore: () => void; classN
 // Slide-in drawer with the complete navigation, language, and logout.
 export function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
-  const nav = useNavItems();
+  const entries = useGroupedNav();
   const logout = useLogout();
+
+  const betaItems = entries.find((e) => e.kind === "beta")?.items ?? [];
+  const { open: betaOpen, toggle: toggleBeta } = useBetaGroupState(betaItems);
+
+  const link = (item: NavItem, indented = false) => (
+    <NavLink
+      key={item.to}
+      to={item.to}
+      end={item.to === "/"}
+      onClick={onClose}
+      className={({ isActive }) =>
+        cn(
+          "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+          indented && "pl-9",
+          isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground",
+        )
+      }
+    >
+      <item.icon size={18} className="flex-shrink-0" />
+      {item.label}
+    </NavLink>
+  );
 
   return (
     <div className={cn("fixed inset-0 z-50 md:hidden", open ? "" : "pointer-events-none")} aria-hidden={!open}>
@@ -85,23 +108,24 @@ export function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => 
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto p-3">
-          {nav.map(({ to, icon: Icon, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === "/"}
-              onClick={onClose}
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
-                  isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground",
-                )
-              }
-            >
-              <Icon size={18} className="flex-shrink-0" />
-              {label}
-            </NavLink>
-          ))}
+          {entries.map((entry) => {
+            if (entry.kind === "item") return link(entry.item);
+            return (
+              <div key="beta-group">
+                <button
+                  type="button"
+                  onClick={toggleBeta}
+                  aria-expanded={betaOpen}
+                  className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                >
+                  <FlaskConical size={18} className="flex-shrink-0" />
+                  <span>{t("nav.betaGroup")}</span>
+                  <ChevronRight size={16} className={cn("ml-auto transition-transform", betaOpen && "rotate-90")} />
+                </button>
+                {betaOpen && <div className="mt-1 space-y-1">{entry.items.map((it) => link(it, true))}</div>}
+              </div>
+            );
+          })}
         </nav>
 
         <div className="space-y-1 border-t p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">

@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { getTemplateSignals, computeHealthScore, getTrendObservations, getSavingsBreakdown } from "../services/insights";
+import { getTemplateSignals, computeHealthScore, getTrendObservations, getSavingsBreakdown, getDataHealth } from "../services/insights";
 import { getMonthlySummary } from "../services/summary";
 import { db } from "../db";
 import { appSettings } from "../db/schema";
@@ -34,6 +34,11 @@ router.get("/savings", (req: Request, res: Response) => {
   const now = new Date();
   const currentMonth = year === now.getFullYear() ? now.getMonth() + 1 : 12;
   res.json(getSavingsBreakdown(year, currentMonth));
+});
+
+// GET /api/insights/health — data-quality review queue
+router.get("/health", (_req: Request, res: Response) => {
+  res.json(getDataHealth());
 });
 
 export default router;

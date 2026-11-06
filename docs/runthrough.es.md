@@ -24,6 +24,23 @@ desglose de gastos.
 
 ---
 
+## Asistente
+
+Un chat para **consultar y añadir datos** en lenguaje natural — un copiloto financiero
+que conoce tus cifras. Haz preguntas abiertas ("¿cuál es nuestro patrimonio neto?",
+"¿consumo eléctrico medio mensual?", "¿cuánto gastamos en comida al mes?") o añade
+entradas ("añade la hipoteca de la casa principal de este mes, 2 500 kr"). El modelo
+solo **enruta**: cada cifra la calcula FinKoll (nunca la inventa), lo que las
+herramientas integradas no cubren se ejecuta como **SQL de solo lectura** sobre tu
+propia base de datos, y cada cambio es un **borrador que confirmas** antes de guardarlo
+— no se escribe nada por ti. El **motor de IA es intercambiable** y está **desactivado
+por defecto**: apúntalo a una clave en la nube (Claude) o a un modelo local (Ollama en
+una pequeña máquina que añadas, dejando la Pi sin carga), configurado en Ajustes.
+
+![Asistente](screenshots/assistant.png)
+
+---
+
 ## Mensual
 
 La vista de trabajo para un solo mes — planeado vs. real por categoría con
@@ -82,13 +99,83 @@ valores con nombre que puedes referenciar.
 ## Hipoteca
 
 Controla hipotecas con una **amortización mensual fija** más el interés (total =
-interés + amortización). La **previsión de pagos** te permite planificar futuros
-cambios del tipo y/o la amortización ("dentro de 3 meses el tipo sube al 5 %"), ver
-el impacto en tu cuota mensual, el interés total y el tiempo de liquidación — y
-**guardarla** para tenerla la próxima vez. Ideal para planificar o negociar con el
-banco.
+interés + amortización). **Agrupa préstamos por casa/objeto** — pulsa **Agrupar
+préstamos**, marca los que quieras combinar, ponle nombre al grupo y confirma —
+para ver la deuda total, el tipo de interés combinado (con el rango resaltado
+cuando los tipos difieren) y el coste mensual total. **La previsión se hace a nivel
+de grupo**: abre la **Previsión** del grupo para ver una **proyección** del coste
+mensual combinado y el saldo restante a **1, 5 y 10 años** (cuánto habrás
+amortizado). Planifica futuros cambios de tipo/amortización como **una previsión
+para todo el grupo** (por defecto), o cambia a **por préstamo** cuando difieran —
+en ambos casos se guarda. Los préstamos independientes (sin grupo) mantienen su
+propia previsión en su tarjeta. Ideal para planificar o negociar con el banco.
 
 ![Hipoteca](screenshots/mortgage.png)
+
+---
+
+## Costes de vivienda
+
+Consulta el coste recurrente de tu **residencia principal** por separado del
+resto. Cada transacción puede asignarse a una **casa/propiedad** (las mismas casas
+que el módulo de Electricidad), y los costes de vivienda son las transacciones de
+la **residencia principal** (elegida aquí). Mantienes una sola categoría por tipo
+de coste: las categorías de vivienda (Alquiler/Hipoteca, Electricidad, Seguro)
+asignan las nuevas transacciones a la casa principal por defecto, y reasignas las
+de la casa de campo por transacción. Una factura que cubre ambas casas (p. ej. una
+factura de electricidad) puede **dividirse**, asignando cada línea a su propia casa —
+así solo cuenta la línea de la residencia principal y se excluye la de la casa de
+campo, mientras la transacción sigue siendo una sola entrada. Las plantillas
+recurrentes también pueden llevar una casa (principal, de campo o general), de modo
+que los costes generados se asignan a la propiedad correcta automáticamente. Los
+costes de vivienda aparecen en la vista
+Mensual (un indicador + desglose de lo que se incluye), en la vista Anual (una
+tabla de vivienda y una fila de subtotal en la matriz detallada), y en esta página
+dedicada con una matriz categoría × mes.
+
+![Vivienda](screenshots/housing.png)
+
+---
+
+## Inversiones
+
+Sigue una cartera de acciones y fondos con ganancia/pérdida casi en vivo. Añade
+posiciones con **autocompletado de símbolo**; FinKoll obtiene precios y divisa y lo
+convierte todo a **SEK**, mostrando la ganancia/pérdida por posición y total, el
+cambio del día y un **gráfico de evolución**. Los datos de mercado provienen de un
+**proveedor intercambiable** — **Yahoo Finance** gratis por defecto (diferido /
+cierre), o un modo **manual** donde tú introduces los precios y no se descarga nada.
+La fuente se cambia desde ajustes, así que un feed de pago/oficial (o una
+importación del bróker) puede añadirse más adelante.
+
+![Inversiones](screenshots/investments.png)
+
+Una pestaña de **Análisis** convierte los mismos datos en tres vistas ordenables:
+**Valoración** (P/E, P/B, rentabilidad por dividendo — se resaltan las filas
+baratas), **Deuda** (deuda/patrimonio, capitalización) y **Rendimiento**
+(rentabilidad a 1 mes, 3 meses, 1 año y ganancia total).
+
+![Inversiones — análisis](screenshots/investments-analysis.png)
+
+---
+
+## Pensión
+
+El centro del patrimonio neto. Reúne tu capital de pensión en un solo lugar —
+normalmente pegado desde **minpension.se**. Las posiciones se agrupan en las tres
+categorías suecas (**allmän**, **tjänstepension**, **privat**) con subtotales y total,
+un **pago mensual proyectado** opcional, un gráfico de **valor a lo largo del tiempo** y
+un **importador por pegado** (una posición por línea). Cada vez que actualizas un valor
+se registra una instantánea, y una tabla de **variación mensual** muestra el cambio mes
+a mes (kr y %) con el total actual. La página calcula el **patrimonio neto =
+inversiones + capital de pensión + capital inmobiliario**: da a cada inmueble un **valor
+de mercado** y **tu parte** (p. ej. 50 % de una vivienda en copropiedad) y asigna cada
+hipoteca al inmueble que la garantiza, de modo que tu capital = **(valor de mercado − el
+préstamo del inmueble) × tu parte**. La pensión es **capital / patrimonio**, no flujo de
+caja mensual, así que queda fuera del resultado neto del presupuesto (y vive aquí en
+lugar de en la vista anual). *(Próximamente: planificación de retiros.)*
+
+![Pensión](screenshots/pension.png)
 
 ---
 

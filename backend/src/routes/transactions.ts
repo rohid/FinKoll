@@ -1,9 +1,10 @@
 import { Router, Request, Response } from "express";
 import { db } from "../db";
-import { transactions, categories, transactionItems } from "../db/schema";
+import { transactions, categories, transactionItems, transactionTags } from "../db/schema";
 import { eq, and, gte, lte, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { isMonthLocked, ymOf } from "../services/locks";
+import { getPrimaryHouseId } from "../services/houses";
 
 const router = Router();
 
@@ -12,6 +13,8 @@ const LOCKED_MSG = "This month is locked. Unlock it before making changes.";
 const ItemSchema = z.object({
   description: z.string().min(1),
   amount: z.number(),
+  houseId: z.number().int().nullable().optional(), // null/undefined = inherit the transaction's house
+  categoryId: z.number().int().nullable().optional(), // null/undefined = inherit the transaction's category
 });
 
 const TransactionSchema = z.object({
@@ -19,9 +22,58 @@ const TransactionSchema = z.object({
   description: z.string().min(1),
   amount: z.number(),
   categoryId: z.number().int(),
+  personId: z.number().int().nullable().optional(),
+  payee: z.string().nullable().optional(),
   notes: z.string().optional(),
+  houseId: z.number().int().nullable().optional(),
   items: z.array(ItemSchema).optional(),
+  tagIds: z.array(z.number().int()).optional(),
 });
+
+// Replace all tag links for a transaction (deduped).
+function replaceTags(transactionId: number, tagIds: number[]) {
+  db.delete(transactionTags).where(eq(transactionTags.transactionId, transactionId)).run();
+  for (const tagId of [...new Set(tagIds)]) {
+    db.insert(transactionTags).values({ transactionId, tagId }).run();
+  }
+}
+
+// Fetch tag ids for a list of transaction IDs, keyed by transaction.
+function tagsByTx(ids: number[]): Map<number, number[]> {
+  const map = new Map<number, number[]>();
+  if (ids.length === 0) return map;
+  const links = db.select().from(transactionTags).where(inArray(transactionTags.transactionId, ids)).all();
+  for (const l of links) {
+    if (!map.has(l.transactionId)) map.set(l.transactionId, []);
+    map.get(l.transactionId)!.push(l.tagId);
+  }
+  return map;
+}
+
+// Soft data-quality warnings returned with a created transaction. These never block
+// the write — the client surfaces them so the user can reconsider (a refund entered
+// as a positive expense, an accidental duplicate). Codes are mapped to copy in the UI.
+function buildWarnings(txData: { date: string; description: string; amount: number; categoryId: number }, excludeId?: number): string[] {
+  const warnings: string[] = [];
+  const cat = db.select().from(categories).where(eq(categories.id, txData.categoryId)).get();
+  // A negative amount on an expense/savings line is usually a refund/reversal — flag
+  // it so it isn't left silently distorting a category total.
+  if (txData.amount < 0 && cat && (cat.type === "EXPENSE" || cat.type === "SAVINGS")) warnings.push("negativeAmount");
+  // Likely duplicate: same month + category + amount + description already present.
+  const { year, month } = ymOf(txData.date);
+  const from = `${year}-${String(month).padStart(2, "0")}-01`;
+  const to = `${year}-${String(month).padStart(2, "0")}-31`;
+  const sameMonth = db
+    .select({ id: transactions.id, description: transactions.description, amount: transactions.amount })
+    .from(transactions)
+    .where(and(gte(transactions.date, from), lte(transactions.date, to), eq(transactions.categoryId, txData.categoryId)))
+    .all();
+  const desc = txData.description.trim().toLowerCase();
+  if (sameMonth.some((r) => r.id !== excludeId && r.amount === txData.amount && r.description.trim().toLowerCase() === desc)) {
+    warnings.push("duplicate");
+  }
+  return warnings;
+}
 
 // Fetch items for a list of transaction IDs and attach them
 function attachItems(rows: any[]): any[] {
@@ -68,7 +120,10 @@ router.get("/", (req: Request, res: Response) => {
       categoryName: categories.name,
       categoryType: categories.type,
       categoryColor: categories.color,
+      personId: transactions.personId,
+      payee: transactions.payee,
       notes: transactions.notes,
+      houseId: transactions.houseId,
       isRecurringInstance: transactions.isRecurringInstance,
       recurringTemplateId: transactions.recurringTemplateId,
     })
@@ -78,7 +133,9 @@ router.get("/", (req: Request, res: Response) => {
     .orderBy(transactions.date)
     .all();
 
-  res.json(attachItems(rows));
+  const withItems = attachItems(rows);
+  const tagMap = tagsByTx(withItems.map((r) => r.id));
+  res.json(withItems.map((r) => ({ ...r, tagIds: tagMap.get(r.id) ?? [] })));
 });
 
 router.post("/", (req: Request, res: Response) => {
@@ -87,7 +144,7 @@ router.post("/", (req: Request, res: Response) => {
     res.status(400).json({ error: parsed.error.flatten() });
     return;
   }
-  const { items, ...txData } = parsed.data;
+  const { items, tagIds, ...txData } = parsed.data;
   // Block if target month is locked
   const { year: pY, month: pM } = ymOf(txData.date);
   if (isMonthLocked(pY, pM)) { res.status(423).json({ error: LOCKED_MSG }); return; }
@@ -95,9 +152,20 @@ router.post("/", (req: Request, res: Response) => {
   if (items && items.length > 0) {
     txData.amount = items.reduce((s, i) => s + i.amount, 0);
   }
+  // Guardrail: a zero-amount entry is never meaningful and would just be noise in
+  // every total — reject it rather than store it.
+  if (txData.amount === 0) { res.status(400).json({ error: "Amount cannot be zero." }); return; }
+  // Default the house from the category when the client didn't set it: a
+  // housing-type category assigns new transactions to the primary residence.
+  if (txData.houseId === undefined) {
+    const cat = db.select().from(categories).where(eq(categories.id, txData.categoryId)).get();
+    txData.houseId = cat?.isHousing ? getPrimaryHouseId() : null;
+  }
+  const warnings = buildWarnings(txData, undefined);
   const result = db.insert(transactions).values(txData).returning().get();
   if (items && items.length > 0) replaceItems(result.id, items);
-  res.status(201).json({ ...result, items: items ?? [] });
+  if (tagIds && tagIds.length > 0) replaceTags(result.id, tagIds);
+  res.status(201).json({ ...result, items: items ?? [], tagIds: tagIds ?? [], warnings });
 });
 
 router.put("/:id", (req: Request, res: Response) => {
@@ -107,7 +175,7 @@ router.put("/:id", (req: Request, res: Response) => {
     res.status(400).json({ error: parsed.error.flatten() });
     return;
   }
-  const { items, ...txData } = parsed.data;
+  const { items, tagIds, ...txData } = parsed.data;
   // Block if the transaction's existing month, or the new target month, is locked
   const existing = db.select().from(transactions).where(eq(transactions.id, id)).get();
   if (existing) {
@@ -122,6 +190,7 @@ router.put("/:id", (req: Request, res: Response) => {
   if (items && items.length > 0) {
     txData.amount = items.reduce((s, i) => s + i.amount, 0);
   }
+  if (txData.amount === 0) { res.status(400).json({ error: "Amount cannot be zero." }); return; }
   const result = db
     .update(transactions)
     .set(txData)
@@ -132,10 +201,12 @@ router.put("/:id", (req: Request, res: Response) => {
     res.status(404).json({ error: "Not found" });
     return;
   }
-  // Always replace items when the key is present (even if empty array = clear items)
+  // Always replace items/tags when the key is present (empty array = clear).
   if (items !== undefined) replaceItems(id, items);
+  if (tagIds !== undefined) replaceTags(id, tagIds);
   const currentItems = db.select().from(transactionItems).where(eq(transactionItems.transactionId, id)).all();
-  res.json({ ...result, items: currentItems });
+  const currentTags = db.select().from(transactionTags).where(eq(transactionTags.transactionId, id)).all().map((t) => t.tagId);
+  res.json({ ...result, items: currentItems, tagIds: currentTags });
 });
 
 // Delete all transactions for a given month — must be registered before /:id

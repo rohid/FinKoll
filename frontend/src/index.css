@@ -24,6 +24,9 @@
     --radius: 0.5rem;
     /* Yearly matrix zebra stripe (overridden at runtime from saved prefs) */
     --zebra-stripe: rgba(100, 116, 139, 0.21);
+    /* Decorative background (overridden at runtime from saved prefs) */
+    --bg-scrim: 0.85; /* opacity of the adaptive wash over the image */
+    --bg-layer: none; /* the gradient/photo layer itself */
   }
 
   .dark {
@@ -45,6 +48,104 @@
     --destructive-foreground: 210 40% 98%;
     --ring: 224.3 76.3% 48%;
   }
+
+  /* ── Accent palettes ──────────────────────────────────────────────────────
+     Light variants are scoped with :not(.dark) and dark with .dark so a palette
+     never leaks a light value into dark mode (or vice-versa). Each block sets the
+     same set of vars in both modes. "nordic" is the default above — no override.
+     "custom" is driven entirely by inline vars set in prefs.ts. */
+
+  /* Evergreen — emerald accent, warm neutral tint */
+  :root:not(.dark)[data-palette="evergreen"] {
+    --background: 150 24% 97%;
+    --primary: 160 84% 31%;
+    --primary-foreground: 150 40% 98%;
+    --accent: 152 34% 93%;
+    --accent-foreground: 158 40% 18%;
+    --secondary: 152 30% 94%;
+    --secondary-foreground: 158 40% 18%;
+    --ring: 160 84% 31%;
+  }
+  .dark[data-palette="evergreen"] {
+    --background: 158 28% 7%;
+    --card: 158 26% 9%;
+    --primary: 158 64% 52%;
+    --primary-foreground: 158 45% 10%;
+    --accent: 158 24% 15%;
+    --accent-foreground: 150 40% 92%;
+    --secondary: 158 22% 15%;
+    --secondary-foreground: 150 40% 92%;
+    --ring: 158 64% 52%;
+  }
+
+  /* Graphite — near-monochrome, understated */
+  :root:not(.dark)[data-palette="graphite"] {
+    --background: 30 6% 96%;
+    --primary: 215 25% 20%;
+    --primary-foreground: 0 0% 98%;
+    --accent: 30 6% 92%;
+    --accent-foreground: 215 25% 20%;
+    --secondary: 30 6% 93%;
+    --secondary-foreground: 215 25% 20%;
+    --ring: 215 25% 20%;
+  }
+  .dark[data-palette="graphite"] {
+    --background: 0 0% 7%;
+    --card: 0 0% 10%;
+    --primary: 0 0% 85%;
+    --primary-foreground: 0 0% 10%;
+    --accent: 0 0% 16%;
+    --accent-foreground: 0 0% 92%;
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 92%;
+    --ring: 0 0% 70%;
+  }
+
+  /* Sunset — warm amber/orange accent */
+  :root:not(.dark)[data-palette="sunset"] {
+    --background: 28 50% 97%;
+    --primary: 22 82% 51%;
+    --primary-foreground: 28 60% 98%;
+    --accent: 28 60% 92%;
+    --accent-foreground: 20 50% 20%;
+    --secondary: 28 50% 93%;
+    --secondary-foreground: 20 50% 20%;
+    --ring: 22 82% 51%;
+  }
+  .dark[data-palette="sunset"] {
+    --background: 20 30% 8%;
+    --card: 20 28% 10%;
+    --primary: 28 90% 58%;
+    --primary-foreground: 20 45% 10%;
+    --accent: 20 26% 16%;
+    --accent-foreground: 28 50% 90%;
+    --secondary: 20 24% 15%;
+    --secondary-foreground: 28 50% 90%;
+    --ring: 28 90% 58%;
+  }
+
+  /* Plum — violet accent */
+  :root:not(.dark)[data-palette="plum"] {
+    --background: 270 40% 98%;
+    --primary: 262 80% 56%;
+    --primary-foreground: 270 40% 98%;
+    --accent: 268 44% 94%;
+    --accent-foreground: 265 45% 22%;
+    --secondary: 268 40% 95%;
+    --secondary-foreground: 265 45% 22%;
+    --ring: 262 80% 56%;
+  }
+  .dark[data-palette="plum"] {
+    --background: 265 32% 9%;
+    --card: 265 30% 11%;
+    --primary: 258 85% 70%;
+    --primary-foreground: 265 45% 12%;
+    --accent: 265 26% 18%;
+    --accent-foreground: 270 40% 92%;
+    --secondary: 265 24% 17%;
+    --secondary-foreground: 270 40% 92%;
+    --ring: 258 85% 70%;
+  }
 }
 
 @layer base {
@@ -54,4 +155,41 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* ── Decorative background ────────────────────────────────────────────────
+     The image/gradient lives on <body>; an adaptive wash of the theme background
+     is layered on top so text contrast never depends on the image. The wash is
+     at least 60% opaque (opacity slider caps image visibility at 40%). <main>
+     turns transparent so the body layer shows through, while cards and the
+     sidebar keep their solid surfaces — the image only peeks through the gutters. */
+  body[data-bg]:not([data-bg="none"]) {
+    background-image:
+      linear-gradient(hsl(var(--background) / var(--bg-scrim)), hsl(var(--background) / var(--bg-scrim))),
+      var(--bg-layer);
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+  }
+  body[data-bg]:not([data-bg="none"]) main {
+    background-color: transparent !important;
+  }
+
+  /* NB: a background-image layer must be an image (gradient/url) — never a bare
+     color. The solid base comes from the body's own background-color. */
+  body[data-bg="aurora"] {
+    --bg-layer:
+      radial-gradient(60vw 55vh at 12% 8%, hsl(var(--primary) / 0.9), transparent 60%),
+      radial-gradient(55vw 50vh at 88% 92%, hsl(var(--ring) / 0.75), transparent 60%);
+  }
+  body[data-bg="mist"] {
+    --bg-layer: radial-gradient(70vw 40vh at 50% -5%, hsl(var(--primary) / 0.8), transparent 70%);
+  }
+  body[data-bg="dunes"] {
+    --bg-layer: repeating-linear-gradient(115deg, hsl(var(--primary) / 0.5) 0 2px, transparent 2px 26px);
+  }
+  body[data-bg="topo"] {
+    --bg-layer: repeating-radial-gradient(circle at 72% 28%, hsl(var(--primary) / 0.5) 0 1px, transparent 1px 18px);
+  }
+  /* "photo" sets --bg-layer to url(<data-url>) inline from prefs.ts */
 }

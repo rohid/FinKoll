@@ -1,14 +1,14 @@
 import { useState, useRef, Fragment } from "react";
 import { createPortal } from "react-dom";
-import { useYearlySummary, useYearlyDetailed, useTransactions, useYearLocks, useAllSettings } from "@/api/hooks";
+import { useYearlySummary, useYearlyDetailed, useTransactions, useYearLocks, useAllSettings, useHousingSummary } from "@/api/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { fmt, fmtPct } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import { ChevronLeft, ChevronRight, ChevronDown, Scissors, Lock, Table2, ListTree } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, Scissors, Lock, Table2, ListTree, Building2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import type { Transaction, YearlyDetailed } from "@/types";
+import type { Transaction, YearlyDetailed, HousingSummary } from "@/types";
 
 // ── Highlight helpers ─────────────────────────────────────────────────────────
 // Alert thresholds (kr) above which an expense/savings amount is flagged.
@@ -218,7 +218,7 @@ function buildSection(section: YearlyDetailed["sections"][number]): { months: nu
 }
 
 function DetailedMatrix({
-  detailed, months, lockedMonths, alerts, netTarget, currentMonth,
+  detailed, months, lockedMonths, alerts, netTarget, currentMonth, housingMonths,
 }: {
   detailed: YearlyDetailed;
   months: string[];
@@ -226,6 +226,7 @@ function DetailedMatrix({
   alerts: Alerts;
   netTarget: number | null;
   currentMonth: number;
+  housingMonths: number[];
 }) {
   const { t } = useTranslation();
   // Categories start expanded; click a category row to collapse its detail rows.
@@ -326,6 +327,19 @@ function DetailedMatrix({
                 </Fragment>
               ))}
 
+              {/* Housing costs (primary home) subtotal — a cross-cut of expenses */}
+              {housingMonths.some((v) => v !== 0) && (
+                <tr className="border-b bg-primary/5">
+                  <td className="py-2 px-4 font-semibold">
+                    <span className="flex items-center gap-1.5"><Building2 size={12} className="text-primary" />{t("housing.subtotalRow")}</span>
+                  </td>
+                  {housingMonths.map((v, i) => (
+                    <td key={i} className="text-right py-2 px-2 tabular-nums font-medium border-l border-border/40">{cell(v)}</td>
+                  ))}
+                  <td className="text-right py-2 px-4 tabular-nums font-semibold border-l border-border/40">{fmt(housingMonths.reduce((s, v) => s + v, 0))}</td>
+                </tr>
+              )}
+
               {/* Net result across all sections */}
               <tr className="border-t-2 border-foreground/20 bg-muted/70">
                 <td className="py-2.5 px-4 font-bold">{t("yearly.netResult")}</td>
@@ -346,12 +360,81 @@ function DetailedMatrix({
   );
 }
 
+// ── Housing costs table (summary view): housing categories × months + total ────
+export function HousingTable({ housing, months, currentMonth, lockedMonths }: {
+  housing: HousingSummary;
+  months: string[];
+  currentMonth: number;
+  lockedMonths: Set<number>;
+}) {
+  const { t } = useTranslation();
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2"><Building2 size={17} className="text-primary" />{t("housing.title")}</CardTitle>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b bg-muted/30">
+                <th className="text-left py-2 px-4 font-medium text-muted-foreground min-w-36">{t("yearly.category")}</th>
+                {months.map((m, i) => (
+                  <th key={m} className={cn("text-right py-2 px-2 font-medium text-muted-foreground w-20 border-l border-border/40", monthHeadCls(i, currentMonth))}>
+                    <span className="inline-flex items-center justify-end gap-0.5">
+                      {lockedMonths.has(i + 1) && <Lock size={9} className="text-muted-foreground/60" />}
+                      {m}
+                    </span>
+                  </th>
+                ))}
+                <th className="text-right py-2 px-4 font-medium text-muted-foreground w-24 border-l border-border/40">{t("yearly.total")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {housing.categories.length === 0 && (
+                <tr><td colSpan={14} className="py-4 px-4 text-center text-muted-foreground">{t("housing.empty")}</td></tr>
+              )}
+              {housing.categories.map((row, idx) => (
+                <tr key={row.categoryId} className="border-b last:border-0 hover:bg-primary/10"
+                  style={idx % 2 === 1 ? { backgroundColor: "var(--zebra-stripe)" } : undefined}>
+                  <td className="py-2 px-4">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: row.color }} />
+                      {row.categoryName}
+                    </div>
+                  </td>
+                  {row.months.map((v, i) => (
+                    <td key={i} className={cn("text-right py-2 px-2 tabular-nums border-l border-border/40", i + 1 === currentMonth && "bg-primary/5")}>
+                      {v !== 0 ? fmt(v) : <span className="text-muted-foreground">—</span>}
+                    </td>
+                  ))}
+                  <td className="text-right py-2 px-4 tabular-nums font-semibold border-l border-border/40">{fmt(row.total)}</td>
+                </tr>
+              ))}
+              {housing.categories.length > 0 && (
+                <tr className="border-t-2 border-foreground/20 bg-primary/10">
+                  <td className="py-2.5 px-4 font-bold">{t("housing.totalRow")}</td>
+                  {housing.monthly.map((v, i) => (
+                    <td key={i} className={cn("text-right py-2.5 px-2 tabular-nums font-bold border-l border-border/40", i + 1 === currentMonth && "bg-primary/5")}>{fmt(v)}</td>
+                  ))}
+                  <td className="text-right py-2.5 px-4 tabular-nums font-bold border-l border-border/40">{fmt(housing.total)}</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 export function Yearly() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [view, setView] = useState<"summary" | "detailed">("summary");
   const { data: summary, isLoading } = useYearlySummary(year);
   const { data: detailed, isLoading: detailedLoading } = useYearlyDetailed(year, view === "detailed");
+  const { data: housing } = useHousingSummary(year);
   const { data: yearLocks } = useYearLocks(year);
   const lockedMonths = new Set(yearLocks?.lockedMonths ?? []);
   const { data: settings } = useAllSettings();
@@ -521,7 +604,7 @@ export function Yearly() {
         detailedLoading || !detailed ? (
           <p className="text-muted-foreground">{t("yearly.loading")}</p>
         ) : (
-          <DetailedMatrix detailed={detailed} months={months} lockedMonths={lockedMonths} alerts={alerts} netTarget={netTarget} currentMonth={currentMonth} />
+          <DetailedMatrix detailed={detailed} months={months} lockedMonths={lockedMonths} alerts={alerts} netTarget={netTarget} currentMonth={currentMonth} housingMonths={housing?.monthly ?? Array(12).fill(0)} />
         )
       ) : isLoading ? (
         <p className="text-muted-foreground">{t("yearly.loading")}</p>
@@ -530,6 +613,10 @@ export function Yearly() {
           <SectionTable type="INCOME"  title={t("yearly.income")} />
           <SectionTable type="EXPENSE" title={t("yearly.expenses")} />
           <SectionTable type="SAVINGS" title={t("yearly.savings")} />
+
+          {housing && housing.categories.length > 0 && (
+            <HousingTable housing={housing} months={months} currentMonth={currentMonth} lockedMonths={lockedMonths} />
+          )}
 
           <Card>
             <CardHeader><CardTitle>{t("yearly.monthlySummary")}</CardTitle></CardHeader>

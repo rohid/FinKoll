@@ -1,9 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "./client";
 import type {
-  Category, Transaction, BudgetPlan, RecurringTemplate,
-  MonthlySummary, YearlySummary, YearlyDetailed, House, ElectricityReading,
+  Category, CategoryGroup, DataHealth, Tag, Person, Transaction, BudgetPlan, RecurringTemplate,
+  MonthlySummary, YearlySummary, YearlyDetailed, HousingSummary, House, ElectricityReading,
   ElectricitySettings, ElectricityInput, ElectricityYearly,
+  Holding, InvestmentSummary, PortfolioSnapshot, ProvidersInfo, SymbolHit, InvestmentAnalysis,
+  PensionData, PensionHolding,
 } from "../types";
 
 // Auth
@@ -31,6 +33,94 @@ export const useUpdateCategory = () => {
   });
 };
 
+export const useMergeCategory = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, intoId }: { id: number; intoId: number }) =>
+      api.post(`/categories/${id}/merge`, { intoId }).then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["categories"] });
+      qc.invalidateQueries({ queryKey: ["transactions"] });
+      qc.invalidateQueries({ queryKey: ["summary"] });
+    },
+  });
+};
+
+// Category groups (canonical taxonomy)
+export const useCategoryGroups = () =>
+  useQuery<CategoryGroup[]>({ queryKey: ["category-groups"], queryFn: () => api.get("/category-groups").then((r) => r.data) });
+
+export const useCreateCategoryGroup = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<CategoryGroup>) => api.post("/category-groups", data).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["category-groups"] }),
+  });
+};
+
+export const useUpdateCategoryGroup = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: Partial<CategoryGroup> & { id: number }) =>
+      api.put(`/category-groups/${id}`, data).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["category-groups"] }),
+  });
+};
+
+export const useDeleteCategoryGroup = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => api.delete(`/category-groups/${id}`).then((r) => r.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["category-groups"] });
+      qc.invalidateQueries({ queryKey: ["categories"] });
+    },
+  });
+};
+
+// Tags
+export const useTags = () =>
+  useQuery<Tag[]>({ queryKey: ["tags"], queryFn: () => api.get("/tags").then((r) => r.data) });
+export const useCreateTag = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<Tag>) => api.post("/tags", data).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["tags"] }),
+  });
+};
+export const useUpdateTag = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: Partial<Tag> & { id: number }) => api.put(`/tags/${id}`, data).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["tags"] }),
+  });
+};
+export const useDeleteTag = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => api.delete(`/tags/${id}`).then((r) => r.data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["tags"] }); qc.invalidateQueries({ queryKey: ["transactions"] }); },
+  });
+};
+
+// People
+export const usePeople = () =>
+  useQuery<Person[]>({ queryKey: ["people"], queryFn: () => api.get("/people").then((r) => r.data) });
+export const useCreatePerson = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<Person>) => api.post("/people", data).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["people"] }),
+  });
+};
+export const useDeletePerson = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => api.delete(`/people/${id}`).then((r) => r.data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["people"] }); qc.invalidateQueries({ queryKey: ["transactions"] }); },
+  });
+};
+
 // Transactions
 export const useTransactions = (year: number, month: number) =>
   useQuery<Transaction[]>({
@@ -41,7 +131,7 @@ export const useTransactions = (year: number, month: number) =>
 export const useCreateTransaction = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: Omit<Transaction, "id" | "categoryName" | "categoryType" | "categoryColor" | "isRecurringInstance" | "items"> & { items?: { description: string; amount: number }[] }) =>
+    mutationFn: (data: Omit<Transaction, "id" | "categoryName" | "categoryType" | "categoryColor" | "isRecurringInstance" | "houseId" | "items" | "tagIds"> & { items?: { description: string; amount: number; houseId?: number | null; categoryId?: number | null }[]; houseId?: number | null; tagIds?: number[] }) =>
       api.post("/transactions", data).then((r) => r.data),
     onSuccess: (_d, vars) => {
       const month = parseInt(vars.date.substring(5, 7));
@@ -55,7 +145,7 @@ export const useCreateTransaction = () => {
 export const useUpdateTransaction = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...data }: Partial<Omit<Transaction,"items">> & { id: number; items?: { description: string; amount: number }[] }) =>
+    mutationFn: ({ id, ...data }: Partial<Omit<Transaction,"items">> & { id: number; items?: { description: string; amount: number; houseId?: number | null }[] }) =>
       api.put(`/transactions/${id}`, data).then((r) => r.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["transactions"] });
@@ -179,6 +269,12 @@ export const useYearlyDetailed = (year: number, enabled = true) =>
     enabled,
   });
 
+export const useHousingSummary = (year: number) =>
+  useQuery<HousingSummary>({
+    queryKey: ["summary", "housing", year],
+    queryFn: () => api.get("/summary/housing", { params: { year } }).then((r) => r.data),
+  });
+
 export const useTrends = (fromYear: number, toYear: number) =>
   useQuery({
     queryKey: ["summary", "trends", fromYear, toYear],
@@ -214,6 +310,16 @@ export const useDeleteHouse = () => {
   return useMutation({
     mutationFn: (id: number) => api.delete(`/electricity/houses/${id}`).then((r) => r.data),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["houses"] }); qc.invalidateQueries({ queryKey: ["electricity"] }); },
+  });
+};
+
+// Update a house's net-worth fields (valuation / ownership share).
+export const useUpdateHouse = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...patch }: { id: number; valuation?: number | null; valuationAsOf?: string | null; ownershipPct?: number }) =>
+      api.patch(`/electricity/houses/${id}`, patch).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["houses"] }),
   });
 };
 
@@ -378,6 +484,12 @@ export const useSavingsBreakdown = (year: number) =>
     queryFn: () => api.get("/insights/savings", { params: { year } }).then((r) => r.data),
   });
 
+export const useDataHealth = () =>
+  useQuery<DataHealth>({
+    queryKey: ["insights", "health"],
+    queryFn: () => api.get("/insights/health").then((r) => r.data),
+  });
+
 // Mortgages
 export const useMortgages = () =>
   useQuery<Mortgage[]>({
@@ -540,6 +652,136 @@ export const useCommitImport = () => {
     mutationFn: (body) => api.post("/import/commit", body).then((r) => r.data),
     onSuccess: (res) => {
       if (res.committed) qc.invalidateQueries();
+    },
+  });
+};
+
+// Investments
+export const useHoldings = () =>
+  useQuery<Holding[]>({ queryKey: ["investments"], queryFn: () => api.get("/investments").then((r) => r.data) });
+
+export const useInvestmentSummary = () =>
+  useQuery<InvestmentSummary>({ queryKey: ["investments", "summary"], queryFn: () => api.get("/investments/summary").then((r) => r.data) });
+
+export const useInvestmentHistory = () =>
+  useQuery<PortfolioSnapshot[]>({ queryKey: ["investments", "history"], queryFn: () => api.get("/investments/history").then((r) => r.data) });
+
+export const useInvestmentProviders = () =>
+  useQuery<ProvidersInfo>({ queryKey: ["investments", "providers"], queryFn: () => api.get("/investments/providers").then((r) => r.data) });
+
+export const useCreateHolding = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<Holding>) => api.post("/investments", data).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["investments"] }),
+  });
+};
+
+export const useUpdateHolding = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: Partial<Holding> & { id: number }) =>
+      api.put(`/investments/${id}`, data).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["investments"] }),
+  });
+};
+
+export const useDeleteHolding = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => api.delete(`/investments/${id}`).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["investments"] }),
+  });
+};
+
+export const useRefreshQuotes = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.post("/investments/refresh").then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["investments"] }),
+  });
+};
+
+// ── Pension ──────────────────────────────────────────────────────────────────
+export const usePension = () =>
+  useQuery<PensionData>({ queryKey: ["pension"], queryFn: () => api.get("/pension").then((r) => r.data) });
+
+export const useCreatePensionHolding = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<PensionHolding>) => api.post("/pension", data).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pension"] }),
+  });
+};
+
+export const useBulkAddPension = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (holdings: Partial<PensionHolding>[]) => api.post("/pension/bulk", { holdings }).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pension"] }),
+  });
+};
+
+export const useUpdatePensionHolding = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...data }: Partial<PensionHolding> & { id: number }) =>
+      api.put(`/pension/${id}`, data).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pension"] }),
+  });
+};
+
+export const useDeletePensionHolding = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => api.delete(`/pension/${id}`).then((r) => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pension"] }),
+  });
+};
+
+export const useSymbolSearch = (query: string) =>
+  useQuery<SymbolHit[]>({
+    queryKey: ["investments", "search", query],
+    queryFn: () => api.get("/investments/search", { params: { q: query } }).then((r) => r.data),
+    enabled: query.trim().length >= 2,
+  });
+
+export const useInvestmentAnalysis = (withReturns: boolean, enabled: boolean) =>
+  useQuery<InvestmentAnalysis>({
+    queryKey: ["investments", "analysis", withReturns],
+    queryFn: () => api.get("/investments/analysis", { params: withReturns ? { withReturns: 1 } : {} }).then((r) => r.data),
+    enabled,
+  });
+
+// ── Assistant (financial copilot) ───────────────────────────────────────────────
+import type { AssistantStatus, AssistantMessage, AssistantChatResponse, AssistantDraft } from "../types";
+
+export const useAssistantStatus = () =>
+  useQuery<AssistantStatus>({
+    queryKey: ["assistant", "status"],
+    queryFn: () => api.get("/assistant/status").then((r) => r.data),
+  });
+
+export const useAssistantHistory = () =>
+  useQuery<AssistantMessage[]>({
+    queryKey: ["assistant", "history"],
+    queryFn: () => api.get("/assistant/history").then((r) => r.data),
+  });
+
+export const useAssistantChat = () =>
+  useMutation<AssistantChatResponse, unknown, AssistantMessage[]>({
+    mutationFn: (messages) => api.post("/assistant/chat", { messages }).then((r) => r.data),
+  });
+
+export const useCommitDraft = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (draft: AssistantDraft) => api.post("/assistant/commit", draft).then((r) => r.data),
+    // A committed write can touch almost anything — refresh the common views.
+    onSuccess: () => {
+      for (const key of ["transactions", "summary", "pension", "houses", "electricity", "mortgages", "investments"]) {
+        qc.invalidateQueries({ queryKey: [key] });
+      }
     },
   });
 };

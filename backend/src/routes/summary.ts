@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { getMonthlySummary, getYearlySummary, getYearlyDetailed } from "../services/summary";
+import { getMonthlySummary, getYearlySummary, getYearlyDetailed, getHousingSummary } from "../services/summary";
 import { db } from "../db";
 import { transactions, categories, budgetPlans } from "../db/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
@@ -33,6 +33,16 @@ router.get("/year/detailed", (req: Request, res: Response) => {
     return;
   }
   res.json(getYearlyDetailed(year));
+});
+
+// Housing costs (primary home): monthly totals + per-category breakdown for a year
+router.get("/housing", (req: Request, res: Response) => {
+  const year = parseInt(req.query.year as string);
+  if (!year) {
+    res.status(400).json({ error: "year required" });
+    return;
+  }
+  res.json(getHousingSummary(year));
 });
 
 // Trends: monthly totals per category for a date range (for analytics)

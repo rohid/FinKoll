@@ -1,11 +1,20 @@
 import { Router, Request, Response } from "express";
 import { db } from "../db";
-import { recurringTemplates, transactions } from "../db/schema";
+import { recurringTemplates, transactions, categories } from "../db/schema";
 import { eq, and, lte, or, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { isMonthLocked } from "../services/locks";
+import { getPrimaryHouseId } from "../services/houses";
 
 const router = Router();
+
+// Default house for a NEW template with no house specified: a housing-type category
+// defaults to the primary residence. (Generated instances inherit the template's own
+// houseId, set below.)
+function defaultHouseId(categoryId: number): number | null {
+  const isHousing = db.select().from(categories).where(eq(categories.id, categoryId)).get()?.isHousing ?? false;
+  return isHousing ? getPrimaryHouseId() : null;
+}
 
 const TemplateSchema = z.object({
   description: z.string().min(1),
@@ -17,6 +26,7 @@ const TemplateSchema = z.object({
   activeToYear: z.number().int().optional(),
   activeToMonth: z.number().int().min(1).max(12).optional(),
   isActive: z.boolean().default(true),
+  houseId: z.number().int().nullable().optional(), // null = general cost
 });
 
 router.get("/", (_req: Request, res: Response) => {
@@ -45,7 +55,11 @@ router.post("/", (req: Request, res: Response) => {
     res.status(400).json({ error: parsed.error.flatten() });
     return;
   }
-  const result = db.insert(recurringTemplates).values(parsed.data).returning().get();
+  const data = { ...parsed.data };
+  // When no house is given, a housing-type category defaults the template to the
+  // primary residence (an explicit null from the client means "general cost").
+  if (data.houseId === undefined) data.houseId = defaultHouseId(data.categoryId);
+  const result = db.insert(recurringTemplates).values(data).returning().get();
   res.status(201).json(result);
 });
 
@@ -108,6 +122,7 @@ router.post("/:id/apply", (req: Request, res: Response) => {
       description: template.description,
       amount: template.amount,
       categoryId: template.categoryId,
+      houseId: template.houseId,
       isRecurringInstance: true,
       recurringTemplateId: template.id,
     })
@@ -171,6 +186,7 @@ router.post("/apply-all", (req: Request, res: Response) => {
         description: tmpl.description,
         amount: tmpl.amount,
         categoryId: tmpl.categoryId,
+        houseId: tmpl.houseId,
         isRecurringInstance: true,
         recurringTemplateId: tmpl.id,
       })

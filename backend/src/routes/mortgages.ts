@@ -15,6 +15,8 @@ const MortgageSchema = z.object({
   effectiveFrom:          z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   notes:                  z.string().optional(),
   forecast:               z.string().optional(),   // saved rate/amortization changes (JSON)
+  groupName:              z.string().optional(),   // group loans by house/object/type
+  houseId:                z.number().int().nullable().optional(), // property this loan is secured on (net worth)
 });
 
 // Amortising loan monthly payment formula

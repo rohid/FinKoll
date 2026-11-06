@@ -11,6 +11,9 @@ import { createBackup, backupBeforeMigrate } from "./services/backup";
 
 import authRoutes from "./routes/auth";
 import categoriesRoutes from "./routes/categories";
+import categoryGroupsRoutes from "./routes/categoryGroups";
+import tagsRoutes from "./routes/tags";
+import peopleRoutes from "./routes/people";
 import transactionsRoutes from "./routes/transactions";
 import budgetRoutes from "./routes/budget";
 import recurringRoutes from "./routes/recurring";
@@ -24,6 +27,9 @@ import mortgagesRoutes from "./routes/mortgages";
 import sqlRoutes from "./routes/sql";
 import importRoutes from "./routes/import";
 import worksheetsRoutes from "./routes/worksheets";
+import investmentsRoutes, { refreshAndSnapshot, writeSnapshot } from "./routes/investments";
+import pensionRoutes from "./routes/pension";
+import assistantRoutes from "./routes/assistant";
 
 // ── Startup environment validation ────────────────────────────────────────────
 const REQUIRED_ENV: Record<string, (v: string) => string | null> = {
@@ -64,6 +70,8 @@ app.use(
 // Worksheets carry a serialized spreadsheet, which can exceed the default
 // limit — give that path a larger JSON parser before the global (smaller) one.
 app.use("/api/worksheets", express.json({ limit: "2mb" }));
+// An uploaded background image (data URL) also exceeds the default limit.
+app.use("/api/settings/background-image", express.json({ limit: "4mb" }));
 app.use(express.json({ limit: "16kb" }));
 app.use(cookieParser());
 
@@ -72,6 +80,9 @@ app.use("/api/auth", authRoutes);
 
 // Protected
 app.use("/api/categories", requireAuth, categoriesRoutes);
+app.use("/api/category-groups", requireAuth, categoryGroupsRoutes);
+app.use("/api/tags", requireAuth, tagsRoutes);
+app.use("/api/people", requireAuth, peopleRoutes);
 app.use("/api/transactions", requireAuth, transactionsRoutes);
 app.use("/api/budget", requireAuth, budgetRoutes);
 app.use("/api/recurring", requireAuth, recurringRoutes);
@@ -85,6 +96,9 @@ app.use("/api/mortgages", requireAuth, mortgagesRoutes);
 app.use("/api/sql",       requireAuth, sqlRoutes);
 app.use("/api/import",    requireAuth, importRoutes);
 app.use("/api/worksheets", requireAuth, worksheetsRoutes);
+app.use("/api/investments", requireAuth, investmentsRoutes);
+app.use("/api/pension", requireAuth, pensionRoutes);
+app.use("/api/assistant", requireAuth, assistantRoutes);
 
 // Run migrations inline on startup, then seed
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
@@ -119,6 +133,23 @@ cron.schedule("0 2 * * *", async () => {
     console.log(`[backup] ${label} backup created: ${entry.filename}`);
   } catch (err) {
     console.error("[backup] scheduled backup failed:", err);
+  }
+});
+
+// Daily portfolio snapshot at 22:30 (after most EOD prices settle). Snapshotting
+// itself makes no network calls; the outbound quote refresh is opt-in so the app
+// stays private-by-default (see INVESTMENTS_AUTO_REFRESH).
+cron.schedule("30 22 * * *", async () => {
+  try {
+    if (process.env.INVESTMENTS_AUTO_REFRESH === "true") {
+      const n = await refreshAndSnapshot();
+      console.log(`[investments] auto-refreshed ${n} quotes + snapshot`);
+    } else {
+      writeSnapshot();
+      console.log("[investments] daily snapshot written");
+    }
+  } catch (err) {
+    console.error("[investments] daily snapshot failed:", err);
   }
 });
 

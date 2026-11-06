@@ -5,6 +5,7 @@ import { MobileTopBar, BottomTabBar, MobileDrawer } from "./MobileNav";
 import { useAllSettings } from "@/api/hooks";
 import {
   loadSidebarCollapsed, saveSidebarCollapsed, reconcileSidebar, reconcileZebra,
+  reconcileTheme, loadTheme, applyTheme,
   SKEY_ZEBRA_COLOR, SKEY_ZEBRA_INTENSITY, SKEY_SIDEBAR,
 } from "@/lib/prefs";
 
@@ -18,8 +19,17 @@ export function AppLayout() {
   useEffect(() => {
     if (!settings) return;
     reconcileZebra(settings[SKEY_ZEBRA_COLOR], settings[SKEY_ZEBRA_INTENSITY]);
+    reconcileTheme((k) => settings[k] ?? null);
     setCollapsed(reconcileSidebar(settings[SKEY_SIDEBAR]));
   }, [settings]);
+
+  // When the mode is "auto", follow the OS light/dark preference live.
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = () => { if (loadTheme().mode === "auto") applyTheme(loadTheme()); };
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
 
   function toggle() {
     setCollapsed((c) => {

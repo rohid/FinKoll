@@ -71,6 +71,97 @@
       "when": 1780000007000,
       "tag": "0009_mortgage_forecast",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1780000008000,
+      "tag": "0010_mortgage_group",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1780000009000,
+      "tag": "0011_investments",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1780000010000,
+      "tag": "0012_fundamentals",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1780000011000,
+      "tag": "0013_housing_costs",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1780000012000,
+      "tag": "0014_item_house",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "6",
+      "when": 1780000013000,
+      "tag": "0015_recurring_house",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1780000014000,
+      "tag": "0016_pension",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1780000015000,
+      "tag": "0017_house_networth",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1780000016000,
+      "tag": "0018_assistant_history",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1780000017000,
+      "tag": "0019_category_groups",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1780000018000,
+      "tag": "0020_transaction_item_category",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1780000019000,
+      "tag": "0021_tags",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1780000020000,
+      "tag": "0022_people_payee",
+      "breakpoints": true
     }
   ]
 }

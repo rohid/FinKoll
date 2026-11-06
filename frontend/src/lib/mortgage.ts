@@ -63,6 +63,43 @@ function simulate(principal: number, rate0: number, amort0: number, evts: Mortga
   return { periods, interestSum, payoff };
 }
 
+// Month-by-month projection of a single loan following its schedule.
+// Returns, for each month 0..maxMonth: the balance at the start of the month and
+// the payment during that month (interest on the balance + amortization in effect).
+export function projectSeries(
+  principal: number,
+  currentRate: number,
+  baseAmortization: number,
+  changes: MortgageChange[],
+  maxMonth: number,
+): { balance: number[]; payment: number[] } {
+  const evts = changes
+    .filter((c) => Number.isFinite(c.month) && c.month >= 1 &&
+      ((c.rate != null && c.rate > 0) || (c.amort != null && c.amort > 0)))
+    .sort((a, b) => a.month - b.month);
+
+  const balance: number[] = [];
+  const payment: number[] = [];
+  let bal = principal, rate = currentRate, amort = baseAmortization, ei = 0;
+
+  for (let m = 0; m <= maxMonth; m++) {
+    while (ei < evts.length && evts[ei].month === m) {
+      if (evts[ei].rate != null && evts[ei].rate! > 0) rate = evts[ei].rate!;
+      if (evts[ei].amort != null && evts[ei].amort! > 0) amort = evts[ei].amort!;
+      ei++;
+    }
+    balance[m] = Math.max(0, bal);
+    if (bal > 0.005) {
+      const principalPaid = Math.min(amort, bal);
+      payment[m] = (bal * rate) / 1200 + principalPaid;
+      bal -= principalPaid;
+    } else {
+      payment[m] = 0;
+    }
+  }
+  return { balance, payment };
+}
+
 export function forecastMortgage(
   principal: number,
   currentRate: number,

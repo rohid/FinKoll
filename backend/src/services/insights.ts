@@ -1,7 +1,7 @@
 import { db } from "../db";
-import { recurringTemplates, transactions, categories, appSettings } from "../db/schema";
+import { recurringTemplates, transactions, categories, transactionItems, appSettings } from "../db/schema";
 import { eq, and, gte, lte, sql } from "drizzle-orm";
-import { getMonthlySummary } from "./summary";
+import { getMonthlySummary, getCategoryContributions } from "./summary";
 
 // ── Shared: check if a template fires for a given month ───────────────────────
 export function templateAppliesTo(
@@ -47,14 +47,11 @@ export function getTemplateSignals(year: number, month: number): TemplateSignal[
   const applicable   = allTemplates.filter((t) => templateAppliesTo(t, year, month));
   if (applicable.length === 0) return [];
 
-  const actuals = db
-    .select({ categoryId: transactions.categoryId, total: sql<number>`SUM(${transactions.amount})` })
-    .from(transactions)
-    .where(and(gte(transactions.date, from), lte(transactions.date, to)))
-    .groupBy(transactions.categoryId)
-    .all();
-
-  const actualsMap = new Map(actuals.map((a) => [a.categoryId, a.total ?? 0]));
+  // Line-aware actuals per category (matches the monthly/yearly summaries).
+  const actualsMap = new Map<number, number>();
+  for (const c of getCategoryContributions(from, to)) {
+    actualsMap.set(c.categoryId, (actualsMap.get(c.categoryId) ?? 0) + c.amount);
+  }
   const cats = new Map(db.select().from(categories).all().map((c) => [c.id, c]));
 
   // Sum template amounts per category (multiple templates may share a category)
@@ -193,16 +190,16 @@ export function getSavingsBreakdown(year: number, currentMonth: number): Savings
   const cats = db.select().from(categories).where(eq(categories.isActive, true)).all();
   const savingsCats = cats.filter((c) => c.type === "SAVINGS");
 
-  const actuals = db
-    .select({
-      categoryId: transactions.categoryId,
-      month: sql<string>`strftime('%m', ${transactions.date})`,
-      total: sql<number>`SUM(${transactions.amount})`,
-    })
-    .from(transactions)
-    .where(and(gte(transactions.date, from), lte(transactions.date, to)))
-    .groupBy(transactions.categoryId, sql`strftime('%m', ${transactions.date})`)
-    .all();
+  // Line-aware actuals per category per month (matches the summaries).
+  const aggMC = new Map<string, { categoryId: number; month: string; total: number }>();
+  for (const c of getCategoryContributions(from, to)) {
+    const month = c.date.substring(5, 7);
+    const key = `${c.categoryId}_${month}`;
+    const e = aggMC.get(key) ?? { categoryId: c.categoryId, month, total: 0 };
+    e.total += c.amount;
+    aggMC.set(key, e);
+  }
+  const actuals = [...aggMC.values()];
 
   // YTD total per savings category
   const ytdMap = new Map<number, number>();
@@ -245,4 +242,86 @@ export function getSavingsBreakdown(year: number, currentMonth: number): Savings
   });
 
   return { ytdByCat, ytdTotal, projectedTotal, avgMonthly: Math.round(avgMonthly), monthsOfEmergencyFund, monthly };
+}
+
+// ── Data Health ────────────────────────────────────────────────────────────────
+// A read-only review queue of data-quality problems that quietly distort analysis,
+// each with enough context to jump to the fix. Never mutates anything — the user
+// decides what to correct. Lists are capped; `count` is the true total.
+export interface HealthIssue<T> { count: number; items: T[]; }
+export interface DataHealth {
+  negativeAmounts: HealthIssue<{ id: number; date: string; description: string; amount: number; categoryName: string }>;
+  ungroupedCategories: HealthIssue<{ id: number; name: string; type: string }>;
+  duplicateCategoryNames: HealthIssue<{ name: string; ids: number[] }>;
+  unusedCategories: HealthIssue<{ id: number; name: string; type: string }>;
+  splitMismatches: HealthIssue<{ id: number; date: string; description: string; amount: number; itemsTotal: number }>;
+  housingUnassigned: HealthIssue<{ id: number; date: string; description: string; categoryName: string }>;
+  totalIssues: number;
+}
+
+const CAP = 100;
+const issue = <T>(all: T[]): HealthIssue<T> => ({ count: all.length, items: all.slice(0, CAP) });
+
+export function getDataHealth(): DataHealth {
+  const cats = db.select().from(categories).all();
+  const catById = new Map(cats.map((c) => [c.id, c]));
+  const activeCats = cats.filter((c) => c.isActive);
+
+  const txs = db.select().from(transactions).all();
+  const items = db.select().from(transactionItems).all();
+  const itemsByTx = new Map<number, typeof items>();
+  for (const it of items) {
+    if (!itemsByTx.has(it.transactionId)) itemsByTx.set(it.transactionId, []);
+    itemsByTx.get(it.transactionId)!.push(it);
+  }
+  const usedCatIds = new Set(txs.map((t) => t.categoryId));
+
+  // 1. Negative amounts (likely a refund/sign slip quietly offsetting a total).
+  const negativeAmounts = issue(
+    txs.filter((t) => t.amount < 0)
+      .map((t) => ({ id: t.id, date: t.date, description: t.description, amount: t.amount, categoryName: catById.get(t.categoryId)?.name ?? "—" })),
+  );
+
+  // 2. Active categories with no group assigned (won't roll up in the group views).
+  const ungroupedCategories = issue(
+    activeCats.filter((c) => c.groupId == null).map((c) => ({ id: c.id, name: c.name, type: c.type })),
+  );
+
+  // 3. Duplicate category names (normalized) — a common cause of split/confused totals.
+  const byNorm = new Map<string, number[]>();
+  for (const c of activeCats) {
+    const key = c.name.trim().toLowerCase();
+    if (!byNorm.has(key)) byNorm.set(key, []);
+    byNorm.get(key)!.push(c.id);
+  }
+  const duplicateCategoryNames = issue(
+    [...byNorm.entries()].filter(([, ids]) => ids.length > 1).map(([name, ids]) => ({ name, ids })),
+  );
+
+  // 4. Active categories never used by any transaction (clutter the pickers).
+  const unusedCategories = issue(
+    activeCats.filter((c) => !usedCatIds.has(c.id)).map((c) => ({ id: c.id, name: c.name, type: c.type })),
+  );
+
+  // 5. Split lines that don't sum to the parent amount (the split is wrong somewhere).
+  const splitMismatches = issue(
+    txs.filter((t) => {
+      const its = itemsByTx.get(t.id);
+      if (!its || its.length === 0) return false;
+      const sum = its.reduce((s, i) => s + i.amount, 0);
+      return Math.abs(sum - t.amount) > 0.005;
+    }).map((t) => ({ id: t.id, date: t.date, description: t.description, amount: t.amount, itemsTotal: itemsByTx.get(t.id)!.reduce((s, i) => s + i.amount, 0) })),
+  );
+
+  // 6. Housing-category transactions with no house assigned (miss the housing totals).
+  const housingUnassigned = issue(
+    txs.filter((t) => catById.get(t.categoryId)?.isHousing && t.houseId == null)
+      .map((t) => ({ id: t.id, date: t.date, description: t.description, categoryName: catById.get(t.categoryId)?.name ?? "—" })),
+  );
+
+  const totalIssues =
+    negativeAmounts.count + ungroupedCategories.count + duplicateCategoryNames.count +
+    unusedCategories.count + splitMismatches.count + housingUnassigned.count;
+
+  return { negativeAmounts, ungroupedCategories, duplicateCategoryNames, unusedCategories, splitMismatches, housingUnassigned, totalIssues };
 }

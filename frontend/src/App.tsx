@@ -11,8 +11,13 @@ import { Analytics } from "@/pages/Analytics";
 import { Electricity } from "@/pages/Electricity";
 import { Settings } from "@/pages/Settings";
 import { Mortgage } from "@/pages/Mortgage";
+import { Investments } from "@/pages/Investments";
+import { Pension } from "@/pages/Pension";
+import { Assistant } from "@/pages/Assistant";
+import { Housing } from "@/pages/Housing";
 import { SqlConsole } from "@/pages/SqlConsole";
 import { Import } from "@/pages/Import";
+import { DataHealth } from "@/pages/DataHealth";
 import { Help } from "@/pages/Help";
 
 // Worksheets pull in a spreadsheet engine — lazy-load so they stay out of the main bundle.
@@ -46,10 +51,15 @@ function AppRoutes() {
         <Route path="/yearly" element={<Yearly />} />
         <Route path="/analytics" element={<Analytics />} />
         <Route path="/mortgage"    element={<Mortgage />} />
+        <Route path="/investments" element={<Investments />} />
+        <Route path="/pension"     element={<Pension />} />
+        <Route path="/assistant"   element={<Assistant />} />
+        <Route path="/housing"     element={<Housing />} />
         <Route path="/electricity" element={<Electricity />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/sql"      element={<SqlConsole />} />
         <Route path="/import"   element={<Import />} />
+        <Route path="/data-health" element={<DataHealth />} />
         <Route path="/help"     element={<Help />} />
         <Route path="/worksheets" element={<Suspense fallback={lazyFallback}><Worksheets /></Suspense>} />
         <Route path="/worksheets/:id" element={<Suspense fallback={lazyFallback}><WorksheetEditor /></Suspense>} />

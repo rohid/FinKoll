@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useTrends, useForecast, useSavingsBreakdown, useElectricityYearly } from "@/api/hooks";
+import { useTrends, useForecast, useSavingsBreakdown, useElectricityYearly, useYearlySummary } from "@/api/hooks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fmt, fmtPct, fmtKwh } from "@/lib/utils";
 import {
@@ -237,6 +237,56 @@ function SavingsSection({ year }: { year: number }) {
   );
 }
 
+// ── Spending-by-group section (canonical taxonomy rollup) ─────────────────────
+function GroupSection({ year }: { year: number }) {
+  const { t } = useTranslation();
+  const { data } = useYearlySummary(year);
+  if (!data) return null;
+
+  const expenseGroups = data.groupRows.filter((g) => g.type === "EXPENSE" && g.total > 0);
+  if (expenseGroups.length === 0) return null;
+
+  const totalExpenses = expenseGroups.reduce((s, g) => s + g.total, 0);
+  const donut = expenseGroups.map((g) => ({ name: g.groupName, value: g.total, color: g.color }));
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-lg font-semibold">{t("analytics.spendByGroup")} · {year}</h2>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader><CardTitle>{t("analytics.spendByGroup")}</CardTitle></CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={240}>
+              <PieChart>
+                <Pie data={donut} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={85} paddingAngle={2}>
+                  {donut.map((d, i) => <Cell key={i} fill={d.color} />)}
+                </Pie>
+                <Tooltip formatter={(v: number) => fmt(v)} />
+                <Legend iconSize={10} wrapperStyle={{ fontSize: 12 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle>{t("analytics.groupRanking")}</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            {expenseGroups.map((g) => (
+              <div key={g.groupName} className="flex items-center gap-3 text-sm">
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: g.color }} />
+                <span className="flex-1 truncate">{g.groupName}</span>
+                <span className="tabular-nums font-medium">{fmt(g.total)}</span>
+                <span className="tabular-nums text-xs text-muted-foreground w-10 text-right">
+                  {totalExpenses > 0 ? `${Math.round((g.total / totalExpenses) * 100)}%` : "—"}
+                </span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
 // ── Electricity section ───────────────────────────────────────────────────────
 function ElectricitySection({ year }: { year: number }) {
   const { t } = useTranslation();
@@ -353,6 +403,9 @@ export function Analytics() {
 
       {/* ── Current year: actuals + forecast ─────────────────────────────── */}
       <ForecastSection year={currentYear} />
+
+      {/* ── Spending by group (canonical taxonomy) ───────────────────────── */}
+      <GroupSection year={currentYear} />
 
       {/* ── Module 2: Savings breakdown ───────────────────────────────────── */}
       <SavingsSection year={currentYear} />

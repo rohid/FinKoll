@@ -2,13 +2,12 @@ import { useState } from "react";
 import { useMonthlySummary, useAppSetting, useMonthInsights } from "@/api/hooks";
 import { KpiCard } from "@/components/KpiCard";
 import { BudgetTable } from "@/components/BudgetTable";
-import { TransactionForm } from "@/components/TransactionForm";
 import { MonthSelector } from "@/components/MonthSelector";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fmt, fmtPct } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { AlertTriangle, TrendingUp, TrendingDown, CheckCircle, Info } from "lucide-react";
+import { AlertTriangle, TrendingUp, TrendingDown, CheckCircle, Info, Building2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { TemplateSignal, TrendObservation } from "@/types";
 
@@ -234,12 +233,28 @@ export function Dashboard() {
               </CardContent>
             </Card>
           )}
-          <Card>
-            <CardHeader><CardTitle>{t("dashboard.addTransaction")}</CardTitle></CardHeader>
-            <CardContent>
-              <TransactionForm year={year} month={month} />
-            </CardContent>
-          </Card>
+          {/* Housing costs for the primary home (moved here from the Monthly view) */}
+          {summary && summary.housingCategories.length > 0 && (
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2"><Building2 size={16} className="text-primary" />{t("housing.title")}</CardTitle>
+                <span className="text-lg font-bold tabular-nums">{fmt(summary.housingTotal)}</span>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border divide-y text-sm">
+                  {summary.housingCategories.map((h) => (
+                    <div key={h.categoryId} className="flex items-center justify-between px-3 py-1.5">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: h.color }} />
+                        {h.categoryName}
+                      </span>
+                      <span className="tabular-nums">{fmt(h.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>
