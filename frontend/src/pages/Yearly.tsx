@@ -1,6 +1,7 @@
 import { useState, useRef, Fragment } from "react";
 import { createPortal } from "react-dom";
 import { useYearlySummary, useYearlyDetailed, useTransactions, useYearLocks, useAllSettings, useHousingSummary } from "@/api/hooks";
+import { KpiCard } from "@/components/KpiCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -598,6 +599,20 @@ export function Yearly() {
             <Button variant="outline" size="icon" onClick={() => setYear((y) => y + 1)}><ChevronRight size={14} /></Button>
           </div>
         </div>
+      </div>
+
+      {/* Yearly KPI summary — mirrors the Dashboard / Monthly rows, for the whole year */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+        <KpiCard label={t("yearly.totalIncome")}   value={fmt(summary?.yearlyTotals.income ?? 0)}   positive={true} />
+        <KpiCard label={t("yearly.totalExpenses")} value={fmt(summary?.yearlyTotals.expenses ?? 0)} />
+        <KpiCard label={t("housing.costLabel")}    value={fmt(housing?.total ?? 0)} />
+        <KpiCard label={t("yearly.totalSavings")}  value={fmt(summary?.yearlyTotals.savings ?? 0)} />
+        <KpiCard
+          label={t("yearly.netResult")}
+          value={fmt(summary?.yearlyTotals.netResult ?? 0)}
+          positive={summary ? summary.yearlyTotals.netResult >= 0 : null}
+        />
+        <KpiCard label={t("yearly.savingsRate")} value={fmtPct(summary?.yearlyTotals.savingsRate ?? 0)} />
       </div>
 
       {view === "detailed" ? (

@@ -2,6 +2,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { Menu, LogOut, MoreHorizontal, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { KollMark } from "@/components/Logo";
 import type { NavItem } from "./nav";
 import { useNavItems, useGroupedNav, useLogout, LangSelect, PRIMARY_PATHS, useBetaGroupState, FlaskConical, ChevronRight } from "./nav";
 
@@ -13,7 +14,7 @@ export function MobileTopBar({ onOpen, className }: { onOpen: () => void; classN
     <header
       className={cn("flex items-center justify-between border-b bg-card px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]", className)}
     >
-      <span className="text-lg font-bold text-primary">FinKoll</span>
+      <span className="flex items-center gap-2 text-lg font-bold text-primary"><KollMark size={22} />FinKoll</span>
       <button onClick={onOpen} title={t("nav.menu")} className="text-muted-foreground hover:text-foreground transition-colors">
         <Menu size={22} />
       </button>
@@ -101,7 +102,7 @@ export function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => 
         )}
       >
         <div className="flex items-center justify-between border-b px-5 py-4 pt-[max(1rem,env(safe-area-inset-top))]">
-          <span className="text-xl font-bold text-primary">FinKoll</span>
+          <span className="flex items-center gap-2 text-xl font-bold text-primary"><KollMark size={24} />FinKoll</span>
           <button onClick={onClose} title={t("electricity.cancel")} className="text-muted-foreground hover:text-foreground">
             <X size={20} />
           </button>

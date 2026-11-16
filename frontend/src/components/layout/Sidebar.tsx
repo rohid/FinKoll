@@ -2,6 +2,7 @@ import { NavLink } from "react-router-dom";
 import { LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { KollMark } from "@/components/Logo";
 import type { NavItem } from "./nav";
 import { useGroupedNav, useLogout, LangSelect, useBetaGroupState, FlaskConical, ChevronRight } from "./nav";
 
@@ -37,8 +38,15 @@ export function Sidebar({ collapsed, onToggle, className }: { collapsed: boolean
 
   return (
     <aside className={cn("flex h-screen flex-col border-r bg-card transition-[width] duration-200", collapsed ? "w-16" : "w-56", className)}>
-      <div className={cn("flex items-center border-b py-5", collapsed ? "justify-center px-2" : "justify-between px-6")}>
-        {!collapsed && <span className="text-xl font-bold text-primary">FinKoll</span>}
+      <div className={cn("flex items-center border-b py-5", collapsed ? "flex-col gap-3 px-2" : "justify-between px-6")}>
+        {collapsed ? (
+          <KollMark size={24} />
+        ) : (
+          <span className="flex items-center gap-2 text-xl font-bold text-primary">
+            <KollMark size={26} />
+            FinKoll
+          </span>
+        )}
         <button
           onClick={onToggle}
           title={collapsed ? t("nav.expand") : t("nav.collapse")}

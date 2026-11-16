@@ -6,6 +6,21 @@ All notable changes to FinKoll are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.3.0] — 2026-11-06
+
+### Added
+- **New logo.** A two-tone Σ (sum) mark now accompanies the **FinKoll** wordmark across
+  the sidebar, the mobile header and the login screen, with a matching SVG favicon.
+- **Yearly KPI row.** The Yearly overview now leads with the same summary cards — income,
+  expenses, housing, savings, net result and savings rate for the whole year — as the
+  Dashboard and Monthly views, shown in both the summary and detailed layouts.
+
+### Fixed
+- **Custom background upload** failed on deployed instances (the error "Could not load
+  that image."). The picked image was decoded from a `blob:` URL, which the production
+  CSP (`img-src 'self' data:`) blocks; it now decodes via a `data:` URL, which the CSP
+  allows.
+
 ## [1.2.0] — 2026-11-06
 
 ### Added
@@ -186,6 +201,7 @@ First public release.
 - Interactive first-run setup script (`scripts/setup.sh` / `setup.ps1`)
 - Docs: Getting Started (EN/SV/ES), visual runthrough, TLS/Let's Encrypt, cloud hosting, roadmap
 
-[Unreleased]: https://github.com/rohid/FinKoll/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/rohid/FinKoll/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/rohid/FinKoll/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/rohid/FinKoll/compare/v1.0.0...v1.2.0
 [1.0.0]: https://github.com/rohid/FinKoll/releases/tag/v1.0.0

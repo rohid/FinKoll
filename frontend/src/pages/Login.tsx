@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { KollMark } from "@/components/Logo";
 import { useTranslation } from "react-i18next";
 
 export function Login() {
@@ -35,6 +36,7 @@ export function Login() {
     <div className="flex min-h-screen items-center justify-center bg-muted/30">
       <Card className="w-full max-w-sm">
         <CardHeader>
+          <KollMark size={40} className="mx-auto mb-1" />
           <CardTitle className="text-2xl text-center">FinKoll</CardTitle>
           <p className="text-center text-sm text-muted-foreground">{t("login.subtitle")}</p>
         </CardHeader>
